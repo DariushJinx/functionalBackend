@@ -19,6 +19,12 @@ exports.getOtp = async (req, res, next) => {
   try {
     const authValidation = await GetOtpValidation.validateAsync(req.body);
     const { mobile } = authValidation;
+    const isUserBan = await BanModel.find({ mobile });
+    if (isUserBan.length) {
+      return res.status(HttpStatus.FORBIDDEN).json({
+        message: "این شماره تماس مسدود شده است!!!",
+      });
+    }
     const code = RandomNumberGenerator();
     const result = await saveUser(code, mobile);
     if (!result) throw createHttpError.Unauthorized("ورود شما انجام نشد");
