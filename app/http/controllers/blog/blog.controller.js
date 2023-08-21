@@ -157,10 +157,10 @@ exports.getOneBlog = async (req, res, next) => {
 exports.getBlogWithSearch = async (req, res, next) => {
   try {
     const { search } = req?.query;
-
-    const blogSearch = await BlogModel.find({
-      $text: { $search: new RegExp(search, "ig").toString() },
-    })
+    const dataQuery = {};
+    if (search) dataQuery["$text"] = { $search: search };
+    // const users = await UserModel.find(dataQuery,{"otp.expiresIn" : 0});
+    const blogSearch = await BlogModel.find(dataQuery)
       .populate([
         {
           path: "author",
