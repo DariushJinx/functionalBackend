@@ -7,6 +7,7 @@ const {
 const createHttpError = require("http-errors");
 const path = require("path");
 const fs = require("fs");
+const ProductModel = require("../http/models/product/product.model");
 // const ProductModel = require("../http/models/product/product.model");
 
 function RandomNumberGenerator() {
@@ -44,30 +45,6 @@ function SignRefreshToken(userID) {
     });
   });
 }
-
-// function verifyRefreshToken(token) {
-//   return new Promise(async (resolve, reject) => {
-//     JWT.verify(token, REFRESH_TOKEN_SECRET_KEY, async (err, payload) => {
-//       if (err)
-//         throw reject(createHttpError.Unauthorized("وارد حساب کاربری خود شوید"));
-//       const { mobile } = payload || {};
-//       const user = await UserModel.findOne({ mobile }, { password: 0, otp: 0 });
-//       if (!user)
-//         throw reject(
-//           createHttpError.Unauthorized("حساب کاربری مورد نظر یافت نشد")
-//         );
-//       const refreshToken = await redisClient.get(String(user?._id));
-//       if (!refreshToken)
-//         throw reject(
-//           createHttpError.Unauthorized("ورود مجدد به حساب کاربری انجام نشد")
-//         );
-//       if (refreshToken === token) return resolve(mobile);
-//       reject(
-//         createHttpError.Unauthorized("ورود مجدد به حساب کاربری انجام نشد")
-//       );
-//     });
-//   });
-// }
 
 function copyObject(object) {
   return JSON.parse(JSON.stringify(object));
@@ -133,96 +110,95 @@ function deleteFileInPublic(fileAddress) {
 //   return findComment?.comments?.[0]?.answers?.[0];
 // }
 
-// async function checkExistProduct(id) {
-//   const product = await ProductModel.findById(id);
-//   if (!product) throw createHttpError.NotFound("محصول مورد نظر یافت نشد");
-//   return product;
-// }
+async function checkExistProduct(id) {
+  const product = await ProductModel.findById(id);
+  if (!product) throw createHttpError.NotFound("محصول مورد نظر یافت نشد");
+  return product;
+}
 
-// async function getBasketOfUser(userID, discount = {}) {
-//   const userDetail = await UserModel.aggregate([
-//     {
-//       $match: { _id: userID },
-//     },
-//     {
-//       $project: { basket: 1 },
-//     },
-//     {
-//       $lookup: {
-//         from: "products",
-//         localField: "basket.products.productID",
-//         foreignField: "_id",
-//         as: "productDetail",
-//       },
-//     },
+async function getBasketOfUser(userID, discount = {}) {
+  const userDetail = await UserModel.aggregate([
+    {
+      $match: { _id: userID },
+    },
+    {
+      $project: { basket: 1 },
+    },
+    {
+      $lookup: {
+        from: "products",
+        localField: "basket.products.productID",
+        foreignField: "_id",
+        as: "productDetail",
+      },
+    },
 
-//     {
-//       $addFields: {
-//         productDetail: {
-//           $function: {
-//             body: function (productDetail, products) {
-//               return productDetail.map(function (product) {
-//                 const count = products.find(
-//                   (item) => item.productID.valueOf() == product._id.valueOf()
-//                 ).count;
-//                 const totalPrice = count * product.price;
-//                 return {
-//                   ...product,
-//                   basketCount: count,
-//                   totalPrice,
-//                   finalPrice:
-//                     totalPrice - (product.discount / 100) * totalPrice,
-//                 };
-//               });
-//             },
-//             args: ["$productDetail", "$basket.products"],
-//             lang: "js",
-//           },
-//         },
-//         payDetail: {
-//           $function: {
-//             body: function (productDetail, products) {
-//               const productAmount = productDetail.reduce(function (
-//                 total,
-//                 product
-//               ) {
-//                 const count = products.find(
-//                   (item) => item.productID.valueOf() == product._id.valueOf()
-//                 ).count;
-//                 const totalPrice = count * product.price;
-//                 return (
-//                   total + (totalPrice - (product.discount / 100) * totalPrice)
-//                 );
-//               },
-//               0);
+    {
+      $addFields: {
+        productDetail: {
+          $function: {
+            body: function (productDetail, products) {
+              return productDetail.map(function (product) {
+                const count = products.find(
+                  (item) => item.productID.valueOf() == product._id.valueOf()
+                ).count;
+                const totalPrice = count * product.price;
+                return {
+                  ...product,
+                  basketCount: count,
+                  totalPrice,
+                  finalPrice:
+                    totalPrice - (product.discount / 100) * totalPrice,
+                };
+              });
+            },
+            args: ["$productDetail", "$basket.products"],
+            lang: "js",
+          },
+        },
+        payDetail: {
+          $function: {
+            body: function (productDetail, products) {
+              const productAmount = productDetail.reduce(function (
+                total,
+                product
+              ) {
+                const count = products.find(
+                  (item) => item.productID.valueOf() == product._id.valueOf()
+                ).count;
+                const totalPrice = count * product.price;
+                return (
+                  total + (totalPrice - (product.discount / 100) * totalPrice)
+                );
+              },
+              0);
 
-//               const productIds = productDetail.map((product) =>
-//                 product._id.valueOf()
-//               );
-//               return {
-//                 productAmount,
-//                 paymentAmount: productAmount,
-//                 productIds,
-//               };
-//             },
-//             args: ["$productDetail", "$basket.products"],
-//             lang: "js",
-//           },
-//         },
-//       },
-//     },
-//     {
-//       $project: { basket: 0 },
-//     },
-//   ]);
-//   return copyObject(userDetail);
-// }
+              const productIds = productDetail.map((product) =>
+                product._id.valueOf()
+              );
+              return {
+                productAmount,
+                paymentAmount: productAmount,
+                productIds,
+              };
+            },
+            args: ["$productDetail", "$basket.products"],
+            lang: "js",
+          },
+        },
+      },
+    },
+    {
+      $project: { basket: 0 },
+    },
+  ]);
+  return copyObject(userDetail);
+}
 
 const UtilsFunctions = {
   RandomNumberGenerator,
   SignAccessToken,
   SignRefreshToken,
-  // verifyRefreshToken,
   copyObject,
   deleteInvalidPropertyInObject,
   ListOfImagesForRequest,
@@ -230,8 +206,8 @@ const UtilsFunctions = {
   // getComment,
   // getCommentWithComment,
   // getAnswerComment,
-  // checkExistProduct,
-  // getBasketOfUser,
+  checkExistProduct,
+  getBasketOfUser,
 };
 
 module.exports = UtilsFunctions;
