@@ -7,8 +7,8 @@ const path = require("path");
 const { default: mongoose } = require("mongoose");
 const AllRoutes = require("./routers/all.routes");
 const { notFound, errors } = require("./utils/erroHandler.utils");
-require("dotenv").config();
 const app = express();
+require("dotenv").config();
 
 module.exports = function Application(DB_URI, PORT) {
   configApplication();
