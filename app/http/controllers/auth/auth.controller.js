@@ -5,7 +5,12 @@ const {
   SignRefreshToken,
 } = require("../../../utils/functions.utils");
 const UserModel = require("../../models/user/user.model");
-const { GetOtpValidation, CheckOtpValidation } = require("../../validation/auth/auth.validation");
+const {
+  GetOtpValidation,
+  CheckOtpValidation,
+  RegisterValidation,
+  LoginValidation,
+} = require("../../validation/auth/auth.validation");
 const { StatusCodes: HttpStatus } = require("http-status-codes");
 const bcrypt = require("bcrypt");
 const BanModel = require("../../models/ban/ban.model");
@@ -56,11 +61,15 @@ exports.checkOtp = async (req, res, next) => {
 };
 
 exports.register = async (req, res) => {
-  const { username, password, first_name, last_name, email, mobile } = req.body;
+  const validation = await RegisterValidation.validateAsync(req.body);
+  const { username, password, first_name, last_name, email, mobile } = validation;
 
-  const isUserExists = await UserModel.findOne({
-    $or: [{ username }, { email }, { mobile }],
-  },{"otp.expiresIn" : 0});
+  const isUserExists = await UserModel.findOne(
+    {
+      $or: [{ username }, { email }, { mobile }],
+    },
+    { "otp.expiresIn": 0 }
+  );
 
   const countOfRegisteredUser = await UserModel.count();
 
@@ -105,7 +114,8 @@ exports.register = async (req, res) => {
 };
 
 exports.login = async (req, res) => {
-  const { identifier, password } = req.body;
+  const validation = await LoginValidation.validateAsync(req.body);
+  const { identifier, password } = validation;
 
   const user = await UserModel.findOne({
     $or: [{ email: identifier }, { username: identifier }],
