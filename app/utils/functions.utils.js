@@ -1,13 +1,12 @@
 const JWT = require("jsonwebtoken");
 const UserModel = require("../http/models/user/user.model");
-const {
-  ACCESS_TOKEN_SECRET_KEY,
-  REFRESH_TOKEN_SECRET_KEY,
-} = require("./constans.utils");
+const { ACCESS_TOKEN_SECRET_KEY, REFRESH_TOKEN_SECRET_KEY } = require("./constans.utils");
 const createHttpError = require("http-errors");
 const path = require("path");
 const fs = require("fs");
 const ProductModel = require("../http/models/product/product.model");
+const courseModel = require("../http/models/course/course.model");
+const { default: mongoose } = require("mongoose");
 // const ProductModel = require("../http/models/product/product.model");
 
 function RandomNumberGenerator() {
@@ -147,8 +146,7 @@ async function getBasketOfUser(userID, discount = {}) {
                   ...product,
                   basketCount: count,
                   totalPrice,
-                  finalPrice:
-                    totalPrice - (product.discount / 100) * totalPrice,
+                  finalPrice: totalPrice - (product.discount / 100) * totalPrice,
                 };
               });
             },
@@ -159,23 +157,15 @@ async function getBasketOfUser(userID, discount = {}) {
         payDetail: {
           $function: {
             body: function (productDetail, products) {
-              const productAmount = productDetail.reduce(function (
-                total,
-                product
-              ) {
+              const productAmount = productDetail.reduce(function (total, product) {
                 const count = products.find(
                   (item) => item.productID.valueOf() == product._id.valueOf()
                 ).count;
                 const totalPrice = count * product.price;
-                return (
-                  total + (totalPrice - (product.discount / 100) * totalPrice)
-                );
-              },
-              0);
+                return total + (totalPrice - (product.discount / 100) * totalPrice);
+              }, 0);
 
-              const productIds = productDetail.map((product) =>
-                product._id.valueOf()
-              );
+              const productIds = productDetail.map((product) => product._id.valueOf());
               return {
                 productAmount,
                 paymentAmount: productAmount,
@@ -195,6 +185,38 @@ async function getBasketOfUser(userID, discount = {}) {
   return copyObject(userDetail);
 }
 
+function getTime(seconds) {
+  const total = Math.round(seconds) / 60;
+  let [minutes, percent] = String(total).split(".");
+  let second = Math.round((percent * 60) / 100)
+    .toString()
+    .substring(0, 2);
+  let hour = 0;
+  if (minutes > 60) {
+    total = minutes / 60;
+    let [h1, percent] = String(total).split(".");
+    (hour = h1),
+      (minutes = Math.round((percent * 60) / 100)
+        .toString()
+        .substring(0, 2));
+  }
+  if (String(hour) == 1) hour = `0${hour}`;
+  if (String(minutes) == 1) minutes = `0${minutes}`;
+  if (String(second) == 1) second = `0${second}`;
+  return `${hour} : ${minutes} : ${second}`;
+}
+
+
+
+
+const findCourseById = async (id) => {
+  if (!mongoose.isValidObjectId(id))
+    throw createHttpError.BadRequest("شناسه ارسال شده صحیح نمیباشد");
+  const course = await courseModel.findById(id);
+  if (!course) throw createHttpError.NotFound("دوره ای یافت نشد");
+  return course;
+};
+
 const UtilsFunctions = {
   RandomNumberGenerator,
   SignAccessToken,
@@ -208,6 +230,8 @@ const UtilsFunctions = {
   // getAnswerComment,
   checkExistProduct,
   getBasketOfUser,
+  getTime,
+  findCourseById,
 };
 
 module.exports = UtilsFunctions;
