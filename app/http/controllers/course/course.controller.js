@@ -13,7 +13,6 @@ const { default: mongoose } = require("mongoose");
 const CourseUserModel = require("../../models/course-user/course-user.model");
 const CommentModel = require("../../models/comments/comment.model");
 
-
 exports.getListOfCourse = async (req, res, next) => {
   try {
     const { search } = req.query;
@@ -23,6 +22,36 @@ exports.getListOfCourse = async (req, res, next) => {
         .populate([
           { path: "category", select: { title: 1 } },
           { path: "teacher", select: { first_name: 1, last_name: 1, mobile: 1, email: 1 } },
+          {
+            path: "likes",
+            select: {
+              first_name: 1,
+              last_name: 1,
+              username: 1,
+              role: 1,
+              _id: 0,
+            },
+          },
+          {
+            path: "dislikes",
+            select: {
+              first_name: 1,
+              last_name: 1,
+              username: 1,
+              role: 1,
+              _id: 0,
+            },
+          },
+          {
+            path: "bookmarks",
+            select: {
+              first_name: 1,
+              last_name: 1,
+              username: 1,
+              role: 1,
+              _id: 0,
+            },
+          },
         ])
         .lean()
         .sort({ _id: -1 });
@@ -90,7 +119,7 @@ exports.getListOfCourse = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
-}
+};
 exports.addCourse = async (req, res, next) => {
   try {
     const validation = await createCourseSchema.validateAsync(req.body);
@@ -123,7 +152,7 @@ exports.addCourse = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
-}
+};
 exports.getOne = async (req, res, next) => {
   try {
     const { title } = req.params;
@@ -131,6 +160,36 @@ exports.getOne = async (req, res, next) => {
       .populate([
         { path: "category", select: { title: 1 } },
         { path: "teacher", select: { first_name: 1, last_name: 1, mobile: 1, email: 1 } },
+        {
+          path: "likes",
+          select: {
+            first_name: 1,
+            last_name: 1,
+            username: 1,
+            role: 1,
+            _id: 0,
+          },
+        },
+        {
+          path: "dislikes",
+          select: {
+            first_name: 1,
+            last_name: 1,
+            username: 1,
+            role: 1,
+            _id: 0,
+          },
+        },
+        {
+          path: "bookmarks",
+          select: {
+            first_name: 1,
+            last_name: 1,
+            username: 1,
+            role: 1,
+            _id: 0,
+          },
+        },
       ])
       .lean();
 
@@ -181,7 +240,7 @@ exports.getOne = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
-}
+};
 exports.updateCourseById = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -221,7 +280,7 @@ exports.updateCourseById = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
-}
+};
 exports.removeCourse = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -240,7 +299,7 @@ exports.removeCourse = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-}
+};
 exports.userRegisterCourse = async (req, res, next) => {
   try {
     const { courseID } = req.params;
@@ -272,4 +331,110 @@ exports.userRegisterCourse = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-}
+};
+
+exports.bookmarkedCourseWithCourseID = async (req, res, next) => {
+  try {
+    const { courseID } = req.params;
+    await findCourseWithTitleOrID(courseID);
+    const user = req.user;
+    const bookmarkedCourse = await CourseModel.findOne({
+      _id: courseID,
+      bookmarks: user._id,
+    });
+    const updateQuery = bookmarkedCourse
+      ? { $pull: { bookmarks: user._id } }
+      : { $push: { bookmarks: user._id } };
+    await CourseModel.updateOne({ _id: courseID }, updateQuery);
+    let message;
+    if (!bookmarkedCourse) message = "دوره مورد نظر به لیست علاقه مندی های شما اضافه شد";
+    else message = "دوره مورد نظر از لیست علاقه مندی های شما حذف شد";
+    return res.status(HttpStatus.OK).json({
+      statusCode: HttpStatus.OK,
+      data: {
+        message,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.likedCourse = async (req, res, next) => {
+  try {
+    const { courseID } = req.params;
+    await findCourseWithTitleOrID(courseID);
+    const user = req.user;
+    const likedCourse = await CourseModel.findOne({
+      _id: courseID,
+      likes: user._id,
+    });
+    const dislikedCourse = await CourseModel.findOne({
+      _id: courseID,
+      dislikes: user._id,
+    });
+    const updateQueryForLikes = likedCourse
+      ? { $pull: { likes: user._id } }
+      : { $push: { likes: user._id } };
+    const updateQueryForDislikes = dislikedCourse && {
+      $pull: { dislikes: user._id },
+    };
+    await CourseModel.updateOne({ _id: courseID }, updateQueryForLikes);
+    let message;
+    if (!likedCourse) {
+      if (dislikedCourse) await CourseModel.updateOne({ _id: courseID }, updateQueryForDislikes);
+      message = "پسندیدن دوره با موفقیت انجام شد";
+    } else message = "پسندیدن دوره با موفقیت لغو شد";
+    return res.status(HttpStatus.OK).json({
+      statusCode: HttpStatus.OK,
+      data: {
+        message,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.dislikedCourse = async (req, res, next) => {
+  try {
+    const { courseID } = req.params;
+    await findCourseWithTitleOrID(courseID);
+    const user = req.user;
+    const likesCourse = await CourseModel.findOne({
+      _id: courseID,
+      likes: user._id,
+    });
+    const dislikesCourse = await CourseModel.findOne({
+      _id: courseID,
+      dislikes: user._id,
+    });
+    const updateQueryForDislikes = dislikesCourse
+      ? { $pull: { dislikes: user._id } }
+      : { $push: { dislikes: user._id } };
+    const updateQueryForLikes = likesCourse && {
+      $pull: { likes: user._id },
+    };
+    await CourseModel.updateOne({ _id: courseID }, updateQueryForDislikes);
+    let message;
+    if (!dislikesCourse) {
+      if (likesCourse) await CourseModel.updateOne({ _id: courseID }, updateQueryForLikes);
+      message = "نپسندیدن دوره با موفقیت انجام شد";
+    } else message = "نپسندیدن دوره با موفقیت لغو شد";
+    return res.status(HttpStatus.OK).json({
+      statusCode: HttpStatus.OK,
+      data: {
+        message,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const findCourseWithTitleOrID = async (field) => {
+  const findQuery = mongoose.isValidObjectId(field) ? { _id: field } : { title: field };
+  const course = await CourseModel.findOne(findQuery);
+  if (!course) throw createHttpError.NotFound("دوره مورد نظر یافت نشد");
+  return course;
+};
