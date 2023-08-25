@@ -9,6 +9,7 @@ const {
   deleteInvalidPropertyInObject,
 } = require("../../../utils/functions.utils");
 const { default: mongoose } = require("mongoose");
+const CommentModel = require("../../models/comments/comment.model");
 
 exports.createBlog = async (req, res, next) => {
   try {
@@ -88,12 +89,51 @@ exports.getAllBlogs = async (req, res, next) => {
           },
         },
       ])
+      .lean()
+      .sort({ _id: -1 });
+
+    const comments = await CommentModel.find({ show: 1 })
+      .populate([
+        { path: "commentUser", select: { first_name: 1, last_name: 1, mobile: 1, email: 1 } },
+      ])
       .lean();
+
+    let allBlogs = [];
+    blogs.forEach((blog) => {
+      let blogTotalScore = 5;
+
+      let blogScores = comments.filter((comment) => {
+        if (comment.blogName) {
+          if (comment.blogName.toString() === blog._id.toString()) {
+            return comment;
+          }
+        }
+      });
+
+      let blogComments = comments.filter((comment) => {
+        if (comment.blogName) {
+          if (comment.blogName.toString() === blog._id.toString()) {
+            return comment;
+          }
+        }
+      });
+
+      blogScores.forEach((comment) => {
+        blogTotalScore += Number(comment.score);
+      });
+
+      allBlogs.push({
+        ...blog,
+        blogComments,
+        productAverageScore: Math.floor(blogTotalScore / (blogScores.length + 1)),
+      });
+    });
+
     return res.status(HttpStatus.OK).json({
       statusCode: HttpStatus.OK,
       data: {
         message: "تمامی مقاله های موجود با موفقیت بازگردانده شدند",
-        blogs,
+        allBlogs,
       },
     });
   } catch (err) {
@@ -105,48 +145,82 @@ exports.getOneBlog = async (req, res, next) => {
   try {
     const { id } = req.params;
     const findBlog = await findBlogWithTitleOrID(id);
-    const blog = await BlogModel.aggregate([
-      {
-        $match: { _id: findBlog._id },
-      },
-      {
-        $lookup: {
-          from: "users",
-          foreignField: "_id",
-          localField: "author",
-          as: "author",
+    const blog = await BlogModel.findOne({ _id: findBlog._id })
+      .populate([
+        {
+          path: "author",
+          select: {
+            first_name: 1,
+            last_name: 1,
+            username: 1,
+            role: 1,
+            _id: 0,
+          },
         },
-      },
-      {
-        $unwind: "$author",
-      },
-      {
-        $lookup: {
-          from: "categories",
-          foreignField: "_id",
-          localField: "category",
-          as: "category",
+        {
+          path: "category",
+          select: { title: 1, _id: 0 },
         },
-      },
-      {
-        $unwind: "$category",
-      },
-      {
-        $project: {
-          "category.__v": 0,
-          "author.otp": 0,
-          "author.__v": 0,
-          "author.role": 0,
-          "author.discount": 0,
-          "author.bills": 0,
+        {
+          path: "likes",
+          select: {
+            first_name: 1,
+            last_name: 1,
+            username: 1,
+            role: 1,
+            _id: 0,
+          },
         },
-      },
-    ]);
+        {
+          path: "dislikes",
+          select: {
+            first_name: 1,
+            last_name: 1,
+            username: 1,
+            role: 1,
+            _id: 0,
+          },
+        },
+        {
+          path: "bookmarks",
+          select: {
+            first_name: 1,
+            last_name: 1,
+            username: 1,
+            role: 1,
+            _id: 0,
+          },
+        },
+      ])
+      .lean();
+
+    const comments = await CommentModel.find({ blogName: blog._id, show: 1 })
+      .populate([
+        { path: "commentUser", select: { first_name: 1, last_name: 1, mobile: 1, email: 1 } },
+      ])
+      .lean();
+
+    let blogTotalScore = 5;
+
+    let blogScores = comments.filter((comment) => {
+      if (comment.blogName) {
+        if (comment.blogName.toString() === blog._id.toString()) {
+          return comment;
+        }
+      }
+    });
+
+    blogScores.forEach((comment) => {
+      blogTotalScore += Number(comment.score);
+    });
+
     return res.status(HttpStatus.OK).json({
       statusCode: HttpStatus.OK,
       data: {
         message: "مقاله مورد نظر با موفقیت بازگردانده شد",
-        blog,
+        ...blog,
+        comments,
+        productAverageScore: Math.floor(blogTotalScore / (blogScores.length + 1)),
       },
     });
   } catch (err) {
@@ -157,42 +231,134 @@ exports.getOneBlog = async (req, res, next) => {
 exports.getBlogWithSearch = async (req, res, next) => {
   try {
     const { search } = req?.query;
-    const dataQuery = {};
-    if (search) dataQuery["$text"] = { $search: search };
-    // const users = await UserModel.find(dataQuery,{"otp.expiresIn" : 0});
-    const blogSearch = await BlogModel.find(dataQuery)
-      .populate([
-        {
-          path: "author",
-          select: { first_name: 1, last_name: 1, username: 1, role: 1 },
-        },
-        {
-          path: "category",
-          select: { title: 1 },
-        },
-        {
-          path: "likes",
-          select: { first_name: 1, last_name: 1, username: 1, role: 1 },
-        },
-        {
-          path: "dislikes",
-          select: { first_name: 1, last_name: 1, username: 1, role: 1 },
-        },
-        {
-          path: "bookmarks",
-          select: { first_name: 1, last_name: 1, username: 1, role: 1 },
-        },
-      ])
-      .lean();
+    if (search) {
+      const blogSearch = await BlogModel.findOne({ $text: { $search: search } })
+        .populate([
+          {
+            path: "author",
+            select: { first_name: 1, last_name: 1, username: 1, role: 1 },
+          },
+          {
+            path: "category",
+            select: { title: 1 },
+          },
+          {
+            path: "likes",
+            select: { first_name: 1, last_name: 1, username: 1, role: 1 },
+          },
+          {
+            path: "dislikes",
+            select: { first_name: 1, last_name: 1, username: 1, role: 1 },
+          },
+          {
+            path: "bookmarks",
+            select: { first_name: 1, last_name: 1, username: 1, role: 1 },
+          },
+        ])
+        .lean();
 
-    if (!blogSearch) throw createHttpError.NotFound("مقاله مورد نظر یافت نشد");
-    return res.status(HttpStatus.OK).json({
-      statusCode: HttpStatus.OK,
-      data: {
-        message: "مقاله مورد نظر با موفقیت بازگردانی شد",
-        blogSearch,
-      },
-    });
+      const comments = await CommentModel.find({ blogName: blogSearch._id, show: 1 })
+        .populate([
+          { path: "commentUser", select: { first_name: 1, last_name: 1, mobile: 1, email: 1 } },
+        ])
+        .lean();
+
+      let blogTotalScore = 5;
+
+      let blogScores = comments.filter((comment) => {
+        if (comment.blogName) {
+          if (comment.blogName.toString() === blogSearch._id.toString()) {
+            return comment;
+          }
+        }
+      });
+
+      blogScores.forEach((comment) => {
+        blogTotalScore += Number(comment.score);
+      });
+
+      if (!blogSearch) throw createHttpError.NotFound("مقاله مورد نظر یافت نشد");
+      return res.status(HttpStatus.OK).json({
+        statusCode: HttpStatus.OK,
+        data: {
+          message: "مقاله مورد نظر با موفقیت بازگردانی شد",
+          ...blogSearch,
+          comments,
+          productAverageScore: Math.floor(blogTotalScore / (blogScores.length + 1)),
+        },
+      });
+    } else {
+      const blogSearches = await BlogModel.find({})
+        .populate([
+          {
+            path: "author",
+            select: { first_name: 1, last_name: 1, username: 1, role: 1 },
+          },
+          {
+            path: "category",
+            select: { title: 1 },
+          },
+          {
+            path: "likes",
+            select: { first_name: 1, last_name: 1, username: 1, role: 1 },
+          },
+          {
+            path: "dislikes",
+            select: { first_name: 1, last_name: 1, username: 1, role: 1 },
+          },
+          {
+            path: "bookmarks",
+            select: { first_name: 1, last_name: 1, username: 1, role: 1 },
+          },
+        ])
+        .lean();
+
+      const comments = await CommentModel.find({ show: 1 })
+        .populate([
+          { path: "commentUser", select: { first_name: 1, last_name: 1, mobile: 1, email: 1 } },
+        ])
+        .lean();
+
+      let allBlogs = [];
+      blogSearches.forEach((blog) => {
+        let blogTotalScore = 5;
+
+        let blogScores = comments.filter((comment) => {
+          if (comment.blogName) {
+            if (comment.blogName.toString() === blog._id.toString()) {
+              return comment;
+            }
+          }
+        });
+
+        let blogComments = comments.filter((comment) => {
+          if (comment.blogName) {
+            if (comment.blogName.toString() === blog._id.toString()) {
+              return comment;
+            }
+          }
+        });
+
+        blogScores.forEach((comment) => {
+          blogTotalScore += Number(comment.score);
+        });
+
+        allBlogs.push({
+          ...blog,
+          blogComments,
+          productAverageScore: Math.floor(blogTotalScore / (blogScores.length + 1)),
+        });
+      });
+
+      if (!blogSearches) throw createHttpError.NotFound("مقاله مورد نظر یافت نشد");
+      return res.status(HttpStatus.OK).json({
+        statusCode: HttpStatus.OK,
+        data: {
+          message: "مقاله مورد نظر با موفقیت بازگردانی شد",
+          allBlogs,
+        },
+      });
+    }
   } catch (err) {
     next(err);
   }
