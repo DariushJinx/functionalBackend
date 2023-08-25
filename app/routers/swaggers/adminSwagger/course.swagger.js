@@ -240,3 +240,62 @@
  *              201:
  *                  description: success
  */
+
+/**
+ * @swagger
+ *  /admin/courses/bookmark/{courseID} :
+ *      get :
+ *          tags : [Course(AdminPanel)]
+ *          summary : update bookmark course with id
+ *          parameters :
+ *              -   in : path
+ *                  name : courseID
+ *                  type : string
+ *                  required : true
+ *          responses :
+ *              200 :
+ *                  description : success - course updated
+ *                  content :
+ *                      application/json :
+ *                          schema :
+ *                              $ref : '#/definitions/DeleteAndUpdate'
+ */
+
+/**
+ * @swagger
+ *  /admin/courses/like/{courseID} :
+ *      get :
+ *          tags : [Course(AdminPanel)]
+ *          summary : update like course with id
+ *          parameters :
+ *              -   in : path
+ *                  name : courseID
+ *                  type : string
+ *                  required : true
+ *          responses :
+ *              200 :
+ *                  description : success - course updated
+ *                  content :
+ *                      application/json :
+ *                          schema :
+ *                              $ref : '#/definitions/DeleteAndUpdate'
+ */
+/**
+ * @swagger
+ *  /admin/courses/dislike/{courseID} :
+ *      get :
+ *          tags : [Course(AdminPanel)]
+ *          summary : update dislike course with id
+ *          parameters :
+ *              -   in : path
+ *                  name : courseID
+ *                  type : string
+ *                  required : true
+ *          responses :
+ *              200 :
+ *                  description : success - course updated
+ *                  content :
+ *                      application/json :
+ *                          schema :
+ *                              $ref : '#/definitions/DeleteAndUpdate'
+ */
