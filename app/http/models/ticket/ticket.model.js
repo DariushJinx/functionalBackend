@@ -43,6 +43,11 @@ const TicketSchema = new mongoose.Schema(
       ref: "products",
       required: false,
     },
+    course: {
+      type: mongoose.Types.ObjectId,
+      ref: "courses",
+      required: false,
+    },
     isAnswer: {
       type: Number,
       required: true,
@@ -50,7 +55,6 @@ const TicketSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
 
 const TicketModel = mongoose.model("tickets", TicketSchema);
 
