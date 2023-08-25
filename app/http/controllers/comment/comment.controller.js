@@ -4,51 +4,91 @@ const CommentModel = require("../../models/comments/comment.model");
 const ProductModel = require("../../models/product/product.model");
 const CreateCommentValidation = require("../../validation/comment/comment.validation");
 const { StatusCodes: HttpStatus } = require("http-status-codes");
+const CourseModel = require("../../models/course/course.model");
 
-exports.createComment = async (req, res, next) => {
+exports.createCommentForBlog = async(req,res,next) => {
   try {
     const validation = await CreateCommentValidation.validateAsync(req.body);
-    const { comment, blogName, productName } = validation;
+    const { comment, blogName, score } = validation;
     const user = req.user;
     const blog = await BlogModel.findOne({ title: blogName });
-    const product = await ProductModel.findOne({ title: productName });
-    if (blog) {
-      const createCommentForBlog = await CommentModel.create({
-        comment,
-        blogName: blog._id,
-        commentUser: user._id,
-      });
-      if (!createCommentForBlog)
-        throw createHttpError.InternalServerError("کامنت برای مقاله مورد نظر ایجاد نشد");
-      return res.status(HttpStatus.CREATED).json({
-        statusCode: HttpStatus.CREATED,
-        data: {
-          message: "کامنت برای مقاله مورد نظر ایجاد شد",
-          createCommentForBlog,
-        },
-      });
-    }
 
-    if (product) {
-      const createCommentForProduct = await CommentModel.create({
-        comment,
-        productName: product._id,
-        commentUser: user._id,
-      });
-      if (!createCommentForProduct)
-        throw createHttpError.InternalServerError("کامنت برای محصول مورد نظر ایجاد نشد");
-      return res.status(HttpStatus.CREATED).json({
-        statusCode: HttpStatus.CREATED,
-        data: {
-          message: "کامنت مورد نظر ایجاد شد",
-          createCommentForProduct,
-        },
-      });
-    }
+    const createCommentForBlog = await CommentModel.create({
+      comment,
+      blogName: blog._id,
+      commentUser: user._id,
+      score,
+    });
+    if (!createCommentForBlog)
+      throw createHttpError.InternalServerError("کامنت برای مقاله مورد نظر ایجاد نشد");
+    return res.status(HttpStatus.CREATED).json({
+      statusCode: HttpStatus.CREATED,
+      data: {
+        message: "کامنت برای مقاله مورد نظر ایجاد شد",
+        createCommentForBlog,
+      },
+    });
+
   } catch (err) {
     next(err);
   }
-};
+}
+
+exports.createCommentForCourse = async(req,res,next) => {
+  try {
+    const validation = await CreateCommentValidation.validateAsync(req.body);
+    const { comment, courseName, score } = validation;
+    const user = req.user;
+    const course = await CourseModel.findOne({ title: courseName });
+
+    const createCommentForCourse = await CommentModel.create({
+      comment,
+      courseName: course._id,
+      commentUser: user._id,
+      score,
+    });
+    if (!createCommentForCourse)
+      throw createHttpError.InternalServerError("کامنت برای دوره مورد نظر ایجاد نشد");
+    return res.status(HttpStatus.CREATED).json({
+      statusCode: HttpStatus.CREATED,
+      data: {
+        message: "کامنت برای دوره مورد نظر ایجاد شد",
+        createCommentForCourse,
+      },
+    });
+
+  } catch (err) {
+    next(err);
+  }
+}
+
+exports.createCommentForProduct = async(req,res,next) => {
+  try {
+    const validation = await CreateCommentValidation.validateAsync(req.body);
+    const { comment, productName, score } = validation;
+    const user = req.user;
+    const product = await ProductModel.findOne({ title: productName });
+
+    const createCommentForProduct = await CommentModel.create({
+      comment,
+      productName: product._id,
+      commentUser: user._id,
+      score,
+    });
+    if (!createCommentForProduct)
+      throw createHttpError.InternalServerError("کامنت برای محصول مورد نظر ایجاد نشد");
+    return res.status(HttpStatus.CREATED).json({
+      statusCode: HttpStatus.CREATED,
+      data: {
+        message: "کامنت برای محصول مورد نظر ایجاد شد",
+        createCommentForProduct,
+      },
+    });
+
+  } catch (err) {
+    next(err);
+  }
+}
 
 exports.createAnswer = async (req, res, next) => {
   try {
@@ -108,6 +148,10 @@ exports.getAllComments = async (req, res, next) => {
         },
         {
           path: "blogName",
+          select: { title: 1, _id: 0 },
+        },
+        {
+          path: "courseName",
           select: { title: 1, _id: 0 },
         },
       ])
