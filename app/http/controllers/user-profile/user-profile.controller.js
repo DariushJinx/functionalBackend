@@ -3,7 +3,7 @@ const BlogModel = require("../../models/blog/blog.model");
 const ProductModel = require("../../models/product/product.model");
 const { getBasketOfUser } = require("../../../utils/functions.utils");
 
-exports.getUserBookmarkedBlogs = async(req, res, next) => {
+exports.getUserBookmarkedBlogs = async (req, res, next) => {
   try {
     const user = req.user;
     const blogs = await BlogModel.find({ bookmarks: user._id })
@@ -64,8 +64,9 @@ exports.getUserBookmarkedBlogs = async(req, res, next) => {
   } catch (err) {
     next(err);
   }
-}
-exports.getUserBookmarkedProducts = async(req, res, next) => {
+};
+
+exports.getUserBookmarkedProducts = async (req, res, next) => {
   try {
     const user = req.user;
     const products = await ProductModel.find({ bookmarks: user._id })
@@ -126,8 +127,9 @@ exports.getUserBookmarkedProducts = async(req, res, next) => {
   } catch (err) {
     next(err);
   }
-}
-exports.getUserBasket = async(req, res, next) => {
+};
+
+exports.getUserBasket = async (req, res, next) => {
   try {
     const user = req.user;
     const userDetail = await getBasketOfUser(user._id);
@@ -141,29 +143,17 @@ exports.getUserBasket = async(req, res, next) => {
   } catch (err) {
     next(err);
   }
-}
+};
 
-exports.updateUserProfile = async(req, res, next) => {
+exports.updateUserProfile = async (req, res, next) => {
   try {
     const userID = req.user._id;
     const data = req.body;
-    const BlackListFields = [
-      "mobile",
-      "otp",
-      "bills",
-      "discount",
-      "role",
-      "Courses",
-    ];
+    const BlackListFields = ["mobile", "otp", "bills", "discount", "role", "Courses"];
     deleteInvalidPropertyInObject(data, BlackListFields);
-    const updateResult = await UserModel.updateOne(
-      { _id: userID },
-      { $set: data }
-    );
+    const updateResult = await UserModel.updateOne({ _id: userID }, { $set: data });
     if (!updateResult.modifiedCount)
-      throw createHttpError.InternalServerError(
-        "کاربر مورد نظر با موفقیت به روزرسانی نشد"
-      );
+      throw createHttpError.InternalServerError("کاربر مورد نظر با موفقیت به روزرسانی نشد");
     return res.status(HttpStatus.OK).json({
       statusCode: HttpStatus.OK,
       data: {
@@ -173,4 +163,4 @@ exports.updateUserProfile = async(req, res, next) => {
   } catch (err) {
     next(err);
   }
-}
+};
