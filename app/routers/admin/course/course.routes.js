@@ -14,4 +14,7 @@ CourseRoutes.get("/list", CourseController.getListOfCourse); //get all course
 CourseRoutes.delete("/remove/:id", CourseController.removeCourse); //remove course
 CourseRoutes.get("/:title", CourseController.getOne); //get all course
 CourseRoutes.patch("/update/:id", uploadFile.array("image", 10), CourseController.updateCourseById); // edit a course
+CourseRoutes.get("/bookmark/:courseID", CourseController.bookmarkedCourseWithCourseID);
+CourseRoutes.get("/like/:courseID", CourseController.likedCourse);
+CourseRoutes.get("/dislike/:courseID", CourseController.dislikedCourse);
 module.exports = CourseRoutes;
