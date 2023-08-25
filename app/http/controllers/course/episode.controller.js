@@ -54,10 +54,10 @@ class Episode extends Controller {
   async removeEpisode(req, res, next) {
     try {
       const { episodeID } = req.params;
-      const episode = await this.getOneEpisode(episodeID);
+      await getEpisode(CourseModel, episodeID);
       const removeEpisodeResult = await CourseModel.updateOne(
         {
-          "chapters.episodes._id": episode._id,
+          "chapters.episodes._id": episodeID,
         },
         {
           $pull: {
@@ -68,7 +68,7 @@ class Episode extends Controller {
         }
       );
 
-      if (removeEpisodeResult.modifiedCount == 0)
+      if (!removeEpisodeResult.modifiedCount)
         throw new createHttpError.InternalServerError("حذف اپیزود انجام نشد");
       return res.status(HttpStatus.OK).json({
         statusCode: HttpStatus.OK,
@@ -80,64 +80,15 @@ class Episode extends Controller {
       next(error);
     }
   }
-  async updateEpisode(req, res, next) {
-    try {
-      const { episodeID } = req.params;
-      const episode = await this.getOneEpisode(episodeID);
-      const { filename, fileUploadPath } = req.body;
-      let blackListFields = ["_id"];
-      if (filename && fileUploadPath) {
-        const fileAddress = path.join(fileUploadPath, filename);
-        req.body.videoAddress = fileAddress.replace(/\\/g, "/");
-        const videoURL = `${process.env.BASE_URL}:${process.env.APPLICATION_PORT}/${req.body.videoAddress}`;
-        const seconds = await getVideoDurationInSeconds(videoURL);
-        req.body.time = getTime(seconds);
-        blackListFields.push("filename");
-        blackListFields.push("fileUploadPath");
-      } else {
-        blackListFields.push("time");
-        blackListFields.push("videoAddress");
-      }
-      const data = req.body;
-      deleteInvalidPropertyInObject(data, blackListFields);
-      const newEpisode = {
-        ...episode,
-        ...data,
-      };
-      const editEpisodeResult = await CourseModel.updateOne(
-        {
-          "chapters.episodes._id": episodeID,
-        },
-        {
-          $set: {
-            "chapters.$.episodes": newEpisode,
-          },
-        }
-      );
-      if (!editEpisodeResult.modifiedCount)
-        throw new createHttpError.InternalServerError("ویرایش اپیزود انجام نشد");
-      return res.status(HttpStatus.OK).json({
-        statusCode: HttpStatus.OK,
-        data: {
-          message: "ویرایش اپیزود با موفقیت انجام شد",
-        },
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-  async getOneEpisode(episodeID) {
-    const course = await CourseModel.findOne(
-      { "chapters.episodes._id": episodeID },
-      {
-        "chapters.$.episodes": 1,
-      }
-    );
-    if (!course) throw new createHttpError.NotFound("اپیزودی یافت نشد");
-    const episode = await course?.chapters?.[0]?.episodes?.[0];
-    if (!episode) throw new createHttpError.NotFound("اپیزودی یافت نشد");
-    return copyObject(episode);
-  }
+}
+
+async function getEpisode(model, id) {
+  const findEpisode = await model.findOne(
+    { "chapters.episodes._id": id },
+    { "chapters.episodes.$": 1 }
+  );
+
+  return findEpisode?.chapters?.[0]?.episodes?.[0];
 }
 
 const EpisodeController = new Episode();
