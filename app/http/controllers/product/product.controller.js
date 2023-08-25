@@ -9,6 +9,7 @@ const ProductModel = require("../../models/product/product.model");
 const { ProductValidation } = require("../../validation/product/product.validation");
 const { StatusCodes: HttpStatus } = require("http-status-codes");
 const { default: mongoose } = require("mongoose");
+const CommentModel = require("../../models/comments/comment.model");
 
 exports.addProduct = async (req, res, next) => {
   try {
@@ -123,24 +124,46 @@ exports.removeProduct = async (req, res, next) => {
   }
 };
 
-exports.getOneProduct = async(req, res, next) => {
+exports.getOneProduct = async (req, res, next) => {
   try {
     const { field } = req.params;
     const product = await findProductWithIDOrTitle(field);
+    const comments = await CommentModel.find({ productName: product._id, show: 1 })
+      .populate([
+        { path: "commentUser", select: { first_name: 1, last_name: 1, mobile: 1, email: 1 } },
+      ])
+      .lean();
+
+    let productTotalScore = 5;
+
+    let productScores = comments.filter((comment) => {
+      if (comment.productName) {
+        if (comment.productName.toString() === product._id.toString()) {
+          return comment;
+        }
+      }
+    });
+
+    productScores.forEach((comment) => {
+      productTotalScore += Number(comment.score);
+    });
+
     if (!product) throw createHttpError.NotFound("محصول مورد نظر یافت نشد");
     return res.status(HttpStatus.OK).json({
       statusCode: HttpStatus.OK,
       data: {
         message: "محصول مورد نظر با موفقیت بازگردانی شد",
-        product,
+        ...product,
+        comments,
+        courseAverageScore: Math.floor(productTotalScore / (productScores.length + 1)),
       },
     });
   } catch (err) {
     next(err);
   }
-}
+};
 
-exports.updateProduct = async(req, res, next) => {
+exports.updateProduct = async (req, res, next) => {
   try {
     const { field } = req.params;
     const product = await findProductWithIDOrTitle(field);
@@ -162,11 +185,11 @@ exports.updateProduct = async(req, res, next) => {
   } catch (err) {
     next(err);
   }
-}
+};
 
-exports.listOfProduct = async(req, res, next) => {
+exports.listOfProduct = async (req, res, next) => {
   try {
-    const product = await ProductModel.find({})
+    const products = await ProductModel.find({})
       .populate([
         {
           path: "category",
@@ -214,24 +237,62 @@ exports.listOfProduct = async(req, res, next) => {
         },
       ])
       .lean();
+
+    const comments = await CommentModel.find({ show: 1 })
+      .populate([
+        { path: "commentUser", select: { first_name: 1, last_name: 1, mobile: 1, email: 1 } },
+      ])
+      .lean();
+
+    let allProducts = [];
+    products.forEach((product) => {
+      let productTotalScore = 5;
+
+      let productScores = comments.filter((comment) => {
+        if (comment.productName) {
+          if (comment.productName.toString() === product._id.toString()) {
+            return comment;
+          }
+        }
+      });
+
+      let productComments = comments.filter((comment) => {
+        if (comment.productName) {
+          if (comment.productName.toString() === product._id.toString()) {
+            return comment;
+          }
+        }
+      });
+
+      productScores.forEach((comment) => {
+        productTotalScore += Number(comment.score);
+      });
+
+      allProducts.push({
+        ...product,
+        productComments,
+        productAverageScore: Math.floor(productTotalScore / (productScores.length + 1)),
+      });
+    });
+
     return res.status(HttpStatus.OK).json({
       statusCode: HttpStatus.OK,
       data: {
         message: "تمامی محصولات موجود با موفقیت بازگردانی شدند",
-        product,
+        allProducts,
       },
     });
   } catch (err) {
     next(err);
   }
-}
+};
 
-exports.searchOfProduct = async(req, res, next) => {
+exports.searchOfProduct = async (req, res, next) => {
   try {
-    const search = req?.query?.search;
-    const dataQuery = {};
-    if (search) dataQuery["$text"] = { $search: search };
-    const products = await ProductModel.find(dataQuery)
+    const { search } = req?.query;
+
+    if (search) {
+      const product = await ProductModel.findOne({ $text: { $search: search } })
         .populate([
           {
             path: "supplier",
@@ -255,19 +316,118 @@ exports.searchOfProduct = async(req, res, next) => {
           },
         ])
         .lean();
-    return res.status(HttpStatus.OK).json({
-      statusCode: HttpStatus.OK,
-      data: {
-        message: "بنا به جستجوی مورد نظر اطلاعات بازگردانده شدند",
-        products,
-      },
-    });
+      const comments = await CommentModel.find({ productName: product._id, show: 1 })
+        .populate([
+          { path: "commentUser", select: { first_name: 1, last_name: 1, mobile: 1, email: 1 } },
+        ])
+        .lean();
+
+      let productTotalScore = 5;
+
+      let productScores = comments.filter((comment) => {
+        if (comment.productName) {
+          if (comment.productName.toString() === product._id.toString()) {
+            return comment;
+          }
+        }
+      });
+
+      let productComments = comments.filter((comment) => {
+        if (comment.productName) {
+          if (comment.productName.toString() === product._id.toString()) {
+            return comment;
+          }
+        }
+      });
+
+      productScores.forEach((comment) => {
+        productTotalScore += Number(comment.score);
+      });
+
+      return res.status(HttpStatus.OK).json({
+        statusCode: HttpStatus.OK,
+        data: {
+          message: "بنا به جستجوی مورد نظر اطلاعات بازگردانده شدند",
+          ...product,
+          productComments,
+          courseAverageScore: Math.floor(productTotalScore / (productScores.length + 1)),
+        },
+      });
+    } else {
+      const products = await ProductModel.find({})
+        .populate([
+          {
+            path: "supplier",
+            select: { first_name: 1, last_name: 1, username: 1, role: 1 },
+          },
+          {
+            path: "category",
+            select: { title: 1, _id: 0 },
+          },
+          {
+            path: "likes",
+            select: { first_name: 1, last_name: 1, username: 1, role: 1 },
+          },
+          {
+            path: "dislikes",
+            select: { first_name: 1, last_name: 1, username: 1, role: 1 },
+          },
+          {
+            path: "bookmarks",
+            select: { first_name: 1, last_name: 1, username: 1, role: 1 },
+          },
+        ])
+        .lean();
+      const comments = await CommentModel.find({ show: 1 })
+        .populate([
+          { path: "commentUser", select: { first_name: 1, last_name: 1, mobile: 1, email: 1 } },
+        ])
+        .lean();
+      let allProducts = [];
+      products.forEach((product) => {
+        let productTotalScore = 5;
+
+        let productScores = comments.filter((comment) => {
+          if (comment.productName) {
+            if (comment.productName.toString() === product._id.toString()) {
+              return comment;
+            }
+          }
+        });
+
+        let productComments = comments.filter((comment) => {
+          if (comment.productName) {
+            if (comment.productName.toString() === product._id.toString()) {
+              return comment;
+            }
+          }
+        });
+
+        productScores.forEach((comment) => {
+          productTotalScore += Number(comment.score);
+        });
+
+        allProducts.push({
+          ...product,
+          productComments,
+          courseAverageScore: Math.floor(productTotalScore / (productScores.length + 1)),
+        });
+      });
+
+      return res.status(HttpStatus.OK).json({
+        statusCode: HttpStatus.OK,
+        data: {
+          message: "بنا به جستجوی مورد نظر اطلاعات بازگردانده شدند",
+          allProducts,
+        },
+      });
+    }
   } catch (err) {
     next(err);
   }
-}
+};
 
-exports.likedProduct = async(req, res, next) => {
+exports.likedProduct = async (req, res, next) => {
   try {
     const { productID } = req.params;
     await findProductWitId(productID);
@@ -304,9 +464,9 @@ exports.likedProduct = async(req, res, next) => {
   } catch (err) {
     next(err);
   }
-}
+};
 
-exports.dislikedProduct = async(req, res, next) => {
+exports.dislikedProduct = async (req, res, next) => {
   try {
     const { productID } = req.params;
     await findProductWitId(productID);
@@ -342,9 +502,9 @@ exports.dislikedProduct = async(req, res, next) => {
   } catch (err) {
     next(err);
   }
-}
+};
 
-exports.bookmarkedProduct = async(req, res, next) => {
+exports.bookmarkedProduct = async (req, res, next) => {
   try {
     const { productID } = req.params;
     const user = req.user;
@@ -369,20 +529,20 @@ exports.bookmarkedProduct = async(req, res, next) => {
   } catch (err) {
     next(err);
   }
-}
+};
 
 const findProductWitId = async (id) => {
   const product = await ProductModel.findById(id);
   if (!product) throw createHttpError.NotFound("محصول مورد نظر یافت نشد");
   return product;
-}
+};
 
 const findProductWithIDOrTitle = async (field) => {
   const findQuery = mongoose.isValidObjectId(field) ? { _id: field } : { title: field };
-  const product = await ProductModel.findOne(findQuery);
+  const product = await ProductModel.findOne(findQuery).lean();
   if (!product) throw createHttpError.NotFound("محصول مورد نظر یافت نشد");
   return product;
-}
+};
 
 async function findFeatureInFeatures(productID, title) {
   const findResult = await ProductModel.findOne(
