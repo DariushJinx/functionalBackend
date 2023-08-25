@@ -507,7 +507,7 @@ exports.dislikedBlog = async (req, res, next) => {
 
 const findBlogWithTitleOrID = async (field) => {
   const findQuery = mongoose.isValidObjectId(field) ? { _id: field } : { title: field };
-  const category = await BlogModel.findOne(findQuery);
-  if (!category) throw createHttpError.NotFound("دسته بندی مورد نظر یافت نشد");
-  return category;
+  const blog = await BlogModel.findOne(findQuery);
+  if (!blog) throw createHttpError.NotFound("مقاله مورد نظر یافت نشد");
+  return blog;
 };
