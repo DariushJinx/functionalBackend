@@ -7,6 +7,7 @@ const fs = require("fs");
 const ProductModel = require("../http/models/product/product.model");
 const courseModel = require("../http/models/course/course.model");
 const { default: mongoose } = require("mongoose");
+const CourseModel = require("../http/models/course/course.model");
 // const ProductModel = require("../http/models/product/product.model");
 
 function RandomNumberGenerator() {
@@ -84,35 +85,16 @@ function deleteFileInPublic(fileAddress) {
   }
 }
 
-// async function getComment(model, id) {
-//   const findComment = await model.findOne(
-//     { "comments._id": id },
-//     { "comments.$": 1 }
-//   );
-
-//   return findComment?.comments?.[0];
-// }
-// async function getCommentWithComment(model, comment) {
-//   const findComment = await model.findOne(
-//     { "comments.comment": comment },
-//     { "comments.$": 1 }
-//   );
-
-//   return findComment?.comments?.[0];
-// }
-// async function getAnswerComment(model, comment) {
-//   const findComment = await model.findOne(
-//     { "comments.answers.comment": comment },
-//     { "comments.$": 1 }
-//   );
-
-//   return findComment?.comments?.[0]?.answers?.[0];
-// }
-
 async function checkExistProduct(id) {
   const product = await ProductModel.findById(id);
   if (!product) throw createHttpError.NotFound("محصول مورد نظر یافت نشد");
   return product;
+}
+
+async function checkExistCourse(id) {
+  const course = await CourseModel.findById(id);
+  if (!course) throw createHttpError.NotFound("دوره مورد نظر یافت نشد");
+  return course;
 }
 
 async function getBasketOfUser(userID, discount = {}) {
@@ -129,6 +111,14 @@ async function getBasketOfUser(userID, discount = {}) {
         localField: "basket.products.productID",
         foreignField: "_id",
         as: "productDetail",
+      },
+    },
+    {
+      $lookup: {
+        from: "courses",
+        localField: "basket.courses.courseID",
+        foreignField: "_id",
+        as: "courseDetail",
       },
     },
 
@@ -154,9 +144,23 @@ async function getBasketOfUser(userID, discount = {}) {
             lang: "js",
           },
         },
+        courseDetail: {
+          $function: {
+            body: function (courseDetail) {
+              return courseDetail.map(function (course) {
+                return {
+                  ...course,
+                  finalPrice: course.price - (course.discount / 100) * course.price,
+                };
+              });
+            },
+            args: ["$courseDetail"],
+            lang: "js",
+          },
+        },
         payDetail: {
           $function: {
-            body: function (productDetail, products) {
+            body: function (courseDetail, productDetail, products) {
               const productAmount = productDetail.reduce(function (total, product) {
                 const count = products.find(
                   (item) => item.productID.valueOf() == product._id.valueOf()
@@ -165,14 +169,21 @@ async function getBasketOfUser(userID, discount = {}) {
                 return total + (totalPrice - (product.discount / 100) * totalPrice);
               }, 0);
 
+              const courseAmount = courseDetail.reduce(function (total, course) {
+                return total + (course.price - (course.discount / 100) * course.price);
+              }, 0);
+
               const productIds = productDetail.map((product) => product._id.valueOf());
+              const courseIds = courseDetail.map((course) => course._id.valueOf());
               return {
                 productAmount,
-                paymentAmount: productAmount,
+                courseAmount,
+                paymentAmount: productAmount + courseAmount,
                 productIds,
+                courseIds,
               };
             },
-            args: ["$productDetail", "$basket.products"],
+            args: ["$courseDetail","$productDetail", "$basket.products"],
             lang: "js",
           },
         },
@@ -206,9 +217,6 @@ function getTime(seconds) {
   return `${hour} : ${minutes} : ${second}`;
 }
 
-
-
-
 const findCourseById = async (id) => {
   if (!mongoose.isValidObjectId(id))
     throw createHttpError.BadRequest("شناسه ارسال شده صحیح نمیباشد");
@@ -225,13 +233,11 @@ const UtilsFunctions = {
   deleteInvalidPropertyInObject,
   ListOfImagesForRequest,
   deleteFileInPublic,
-  // getComment,
-  // getCommentWithComment,
-  // getAnswerComment,
   checkExistProduct,
   getBasketOfUser,
   getTime,
   findCourseById,
+  checkExistCourse,
 };
 
 module.exports = UtilsFunctions;
