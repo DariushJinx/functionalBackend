@@ -7,6 +7,10 @@ ProfileRoutes.get(
   "/bookmark-product",
   ProfileController.getUserBookmarkedProducts
 );
+ProfileRoutes.get(
+  "/bookmark-course",
+  ProfileController.getUserBookmarkedCourses
+);
 ProfileRoutes.get("/basket", ProfileController.getUserBasket);
 ProfileRoutes.patch("/update-profile", ProfileController.updateUserProfile);
 
