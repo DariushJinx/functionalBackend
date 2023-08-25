@@ -1,18 +1,13 @@
 const createHttpError = require("http-errors");
 const TicketModel = require("../../models/ticket/ticket.model");
-const {
-  createTicket,
-  setAnswer,
-  getAnswer,
-} = require("../../validation/ticket/ticket.validation");
+const { createTicket, setAnswer, getAnswer } = require("../../validation/ticket/ticket.validation");
 const { StatusCodes: HttpStatus } = require("http-status-codes");
 
-exports.createTicket = async(req, res, next) => {
+exports.createTicket = async (req, res, next) => {
   try {
     const user = req.user;
     const validation = await createTicket.validateAsync(req.body);
-    const { departmentID, departmentSubID, title, priority, body, product } =
-      validation;
+    const { departmentID, departmentSubID, title, priority, body, product, course } = validation;
     const ticket = await TicketModel.create({
       departmentID,
       departmentSubID,
@@ -20,6 +15,7 @@ exports.createTicket = async(req, res, next) => {
       priority,
       body,
       product,
+      course,
       user: user._id,
       answer: 0,
       isAnswer: 0,
@@ -36,9 +32,16 @@ exports.createTicket = async(req, res, next) => {
           email: 1,
           mobile: 1,
         },
+      })
+      .populate({
+        path: "course",
+        select: {
+          title: 1,
+          text: 1,
+          short_text: 1,
+        },
       });
-    if (!ticket)
-      throw createHttpError.InternalServerError("تیکت مورد نظر ایجاد نشد");
+    if (!ticket) throw createHttpError.InternalServerError("تیکت مورد نظر ایجاد نشد");
     return res.status(HttpStatus.CREATED).json({
       statusCode: HttpStatus.CREATED,
       data: {
@@ -49,9 +52,9 @@ exports.createTicket = async(req, res, next) => {
   } catch (err) {
     next(err);
   }
-}
+};
 
-exports.listOfTicket = async(req, res, next) => {
+exports.listOfTicket = async (req, res, next) => {
   try {
     const tickets = await TicketModel.find({ isAnswer: 0 })
       .populate([
@@ -87,6 +90,7 @@ exports.listOfTicket = async(req, res, next) => {
           departmentSubID: ticket.departmentSubID.title,
           user: ticket.user.first_name,
           product: ticket.product ? ticket.product.title : null,
+          course: ticket.course ? ticket.course.title : null,
         });
       }
     });
@@ -100,9 +104,9 @@ exports.listOfTicket = async(req, res, next) => {
   } catch (err) {
     next(err);
   }
-}
+};
 
-exports.userTickets = async(req, res, next) => {
+exports.userTickets = async (req, res, next) => {
   try {
     const user = req.user;
     const tickets = await TicketModel.find({ user: user._id })
@@ -135,9 +139,9 @@ exports.userTickets = async(req, res, next) => {
   } catch (err) {
     next(err);
   }
-}
+};
 
-exports.setAnswer = async(req, res, next) => {
+exports.setAnswer = async (req, res, next) => {
   try {
     const user = req.user;
     const validation = await setAnswer.validateAsync(req.body);
@@ -151,11 +155,11 @@ exports.setAnswer = async(req, res, next) => {
       priority: ticket.priority,
       user: user._id,
       isAnswer: 1,
-      answer: 0,
+      answer: 1,
       departmentID: ticket.departmentID,
       departmentSubID: ticket.departmentSubID,
     });
-    await TicketModel.findOneAndUpdate({ _id: ticket._id }, { answer: 1 });
+   
     return res.status(HttpStatus.CREATED).json({
       statusCode: HttpStatus.CREATED,
       data: {
@@ -163,19 +167,19 @@ exports.setAnswer = async(req, res, next) => {
         answer,
       },
     });
+    
   } catch (err) {
     next(err);
   }
-}
+};
 
-exports.getAnswer = async(req, res, next) => {
+exports.getAnswer = async (req, res, next) => {
   try {
     const validation = await getAnswer.validateAsync(req.params);
     const { id } = validation;
     const answerTicket = await TicketModel.findOne({ parent: id });
     const ticket = await TicketModel.findOne({ _id: id });
-    if (!answerTicket || !ticket)
-      throw createHttpError.NotFound("آیدی تیکت مجدد چک شود");
+    if (!answerTicket || !ticket) throw createHttpError.NotFound("آیدی تیکت مجدد چک شود");
     return res.status(HttpStatus.OK).json({
       statusCode: HttpStatus.OK,
       data: {
@@ -187,4 +191,4 @@ exports.getAnswer = async(req, res, next) => {
   } catch (err) {
     next(err);
   }
-}
+};
