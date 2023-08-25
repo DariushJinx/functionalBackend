@@ -197,15 +197,15 @@
 
 /**
  * @swagger
- *  /admin/courses/{id}:
+ *  /admin/courses/{title}:
  *      get:
  *          tags: [Course(AdminPanel)]
  *          summary: get one of courses by ObjectId
  *          parameters:
  *              -   in: path
- *                  name: id
+ *                  name: title
  *                  type: string
- *                  description: find course by id
+ *                  description: find course by title
  *          responses :
  *              200:
  *                  description: success
@@ -223,5 +223,20 @@
  *                  description: remove course by id
  *          responses :
  *              200:
+ *                  description: success
+ */
+/**
+ * @swagger
+ *  /admin/courses/user-register-course/{courseID}:
+ *      post:
+ *          tags: [Course(AdminPanel)]
+ *          summary: user register course
+ *          parameters:
+ *              -   in: path
+ *                  name: courseID
+ *                  type: string
+ *                  description: find course by id and register course for user
+ *          responses :
+ *              201:
  *                  description: success
  */
