@@ -19,12 +19,17 @@ const CommentSchema = new mongoose.Schema(
     show: { type: Number, required: true, default: 0 },
     commentUser: { type: mongoose.Types.ObjectId, ref: "users", required: true },
     comment: { type: String, required: true },
+    score: { type: Number, required: true },
     openToComment: { type: Boolean, default: true },
     answers: { type: [AnswerSchema], default: [] },
     blogName: { type: mongoose.Types.ObjectId, ref: "blogs" },
     productName: {
       type: mongoose.Types.ObjectId,
       ref: "products",
+    },
+    courseName: {
+      type: mongoose.Types.ObjectId,
+      ref: "courses",
     },
   },
   {
