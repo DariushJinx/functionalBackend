@@ -20,6 +20,9 @@
  *                  product :
  *                      type : string
  *                      description : product id for create ticket
+ *                  course :
+ *                      type : string
+ *                      description : course id for create ticket
  *                  title :
  *                      type : string
  *                      description : title for create ticket
