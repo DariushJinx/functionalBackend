@@ -9,8 +9,9 @@ CourseRoutes.post(
   stringToArray("tags"),
   CourseController.addCourse
 );
+CourseRoutes.post("/user-register-course/:courseID", CourseController.userRegisterCourse);
 CourseRoutes.get("/list", CourseController.getListOfCourse); //get all course
 CourseRoutes.delete("/remove/:id", CourseController.removeCourse); //remove course
-CourseRoutes.get("/:id", CourseController.getCourseById); //get all course
+CourseRoutes.get("/:title", CourseController.getOne); //get all course
 CourseRoutes.patch("/update/:id", uploadFile.array("image", 10), CourseController.updateCourseById); // edit a course
 module.exports = CourseRoutes;
