@@ -27,6 +27,7 @@ const schema = new mongoose.Schema(
     birthday: { type: String },
     role: { type: String, enum: ["USER", "ADMIN"], default: "USER" },
     basket: { type: BasketSchema },
+    courses : {type : [mongoose.Types.ObjectId] , ref : "courses"}
   },
   {
     timestamps: true,
