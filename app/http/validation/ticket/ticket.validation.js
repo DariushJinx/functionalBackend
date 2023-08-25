@@ -21,6 +21,7 @@ const createTicket = Joi.object({
     createHttpError.BadRequest("اولوبت وارد شده برای تیکت صحیح نمی باشد")
   ),
   product: Joi.string(),
+  course: Joi.string(),
 });
 
 const getAnswer = Joi.object({
