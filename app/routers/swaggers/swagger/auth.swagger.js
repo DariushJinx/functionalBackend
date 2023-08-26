@@ -174,3 +174,14 @@
  *                          schema :
  *                              $ref : '#/definitions/Login'
  */
+
+/**
+ * @swagger
+ *  /auth/me :
+ *      get :
+ *          tags : [User Authentication]
+ *          summary : get me
+ *          responses :
+ *              200 :
+ *                  description : Success 
+ */
