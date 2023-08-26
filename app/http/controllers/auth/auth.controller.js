@@ -14,6 +14,8 @@ const {
 const { StatusCodes: HttpStatus } = require("http-status-codes");
 const bcrypt = require("bcrypt");
 const BanModel = require("../../models/ban/ban.model");
+const CourseUserModel = require("../../models/course-user/course-user.model");
+const NotificationModel = require("../../models/notification/notification.model");
 
 exports.getOtp = async (req, res, next) => {
   try {
@@ -146,6 +148,47 @@ exports.login = async (req, res) => {
       accessToken,
     },
   });
+};
+
+exports.getMe = async (req, res, next) => {
+  try {
+    const user = req.user;
+    const userCourses = await CourseUserModel.find({ user: user._id })
+      .populate([{ path: "course" }])
+      .lean();
+
+    const AllCourse = [];
+
+    for (const userCourse of userCourses) {
+      AllCourse.push(userCourse.course);
+    }
+
+    const adminNotifications = await NotificationModel.find({
+      admin: user._id,
+    }).lean();
+
+    const notifications = [];
+
+    for (const adminNotification of adminNotifications) {
+      if (adminNotification.see === 0) {
+        notifications.push({
+          msg: adminNotification.msg,
+          _id: adminNotification._id,
+        });
+      }
+    }
+
+    return res.status(HttpStatus.OK).json({
+      statusCode: HttpStatus.OK,
+      data: {
+        user,
+        AllCourse,
+        notifications,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
 };
 
 const saveUser = async (code, mobile) => {
