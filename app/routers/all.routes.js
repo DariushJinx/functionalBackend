@@ -13,10 +13,10 @@ const AllRoutes = require("express").Router();
 AllRoutes.use("/", HomeRoutes);
 AllRoutes.use("/auth", AuthRoutes);
 AllRoutes.use("/admin", MainAdminRoutes);
-AllRoutes.use("/profile",verifyAccessToken, ProfileRoutes);
-AllRoutes.use("/basket",verifyAccessToken, BasketRoutes);
-AllRoutes.use("/contact",verifyAccessToken, ContactRoutes);
-AllRoutes.use("/ticket",verifyAccessToken, TicketRoutes);
+AllRoutes.use("/profile", verifyAccessToken, ProfileRoutes);
+AllRoutes.use("/basket", verifyAccessToken, BasketRoutes);
+AllRoutes.use("/contact", verifyAccessToken, ContactRoutes);
+AllRoutes.use("/ticket", verifyAccessToken, TicketRoutes);
 AllRoutes.use("/menu", MenuRoutes);
 
 module.exports = AllRoutes;
