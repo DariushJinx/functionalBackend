@@ -1,14 +1,10 @@
 const { default: getVideoDurationInSeconds } = require("get-video-duration");
 const { createEpisodeSchema } = require("../../validation/course/course.schema");
-const Controller = require("../controller");
 const path = require("path");
 const {
   getTime,
-  deleteInvalidPropertyInObject,
   deleteFileInPublic,
-  copyObject,
 } = require("../../../utils/functions.utils");
-const createHttpError = require("http-errors");
 const { StatusCodes: HttpStatus } = require("http-status-codes");
 const CourseModel = require("../../models/course/course.model");
 
@@ -39,8 +35,14 @@ exports.addNewEpisode = async (req, res, next) => {
         },
       }
     );
-    if (createEpisodeResult.modifiedCount == 0)
-      throw new createHttpError.InternalServerError("افزودن اپیزود انجام نشد");
+    if (createEpisodeResult.modifiedCount == 0){
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        data: {
+          message: "افزودن اپیزود انجام نشد",
+        },
+      });
+    }
     return res.status(HttpStatus.CREATED).json({
       statusCode: HttpStatus.CREATED,
       data: {
@@ -48,6 +50,7 @@ exports.addNewEpisode = async (req, res, next) => {
       },
     });
   } catch (error) {
+    deleteFileInPublic(req.body.videoAddress);
     next(error);
   }
 };
@@ -68,8 +71,14 @@ exports.removeEpisode = async (req, res, next) => {
       }
     );
 
-    if (!removeEpisodeResult.modifiedCount)
-      throw new createHttpError.InternalServerError("حذف اپیزود انجام نشد");
+    if (!removeEpisodeResult.modifiedCount){
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        data: {
+          message: "حذف اپیزود انجام نشد",
+        },
+      });
+    }
     return res.status(HttpStatus.OK).json({
       statusCode: HttpStatus.OK,
       data: {
