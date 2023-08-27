@@ -1,4 +1,3 @@
-const createHttpError = require("http-errors");
 const MenuModel = require("../../models/menu/menu.model");
 const MenuValidation = require("../../validation/menu/menu.validation");
 const { StatusCodes: HttpStatus } = require("http-status-codes");
@@ -11,7 +10,14 @@ exports.createMenu = async (req, res, next) => {
     const { title } = validation;
     await findMenuWithTitle(title);
     const menu = await MenuModel.create({ title });
-    if (!menu) throw createHttpError.InternalServerError("منو مورد نظر ایجاد نشد");
+    if (!menu) {
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        data: {
+          message: "منو مورد نظر ایجاد نشد",
+        },
+      });
+    }
     return res.status(HttpStatus.CREATED).json({
       statusCode: HttpStatus.CREATED,
       data: {
@@ -40,7 +46,14 @@ exports.createSubmenu = async (req, res, next) => {
         },
       }
     );
-    if (!menu) throw createHttpError.InternalServerError("زیر منو مورد نظر ایجاد نشد");
+    if (!menu) {
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        data: {
+          message: "زیر منو مورد نظر ایجاد نشد",
+        },
+      });
+    }
     return res.status(HttpStatus.CREATED).json({
       statusCode: HttpStatus.CREATED,
       data: {
@@ -76,8 +89,14 @@ exports.updateMenu = async (req, res, next) => {
     const data = copyObject(validation);
     deleteInvalidPropertyInObject(data, []);
     const updateResult = await MenuModel.updateOne({ _id: menu._id }, { $set: data });
-    if (!updateResult.modifiedCount)
-      throw createHttpError.InternalServerError("منو مورد نظر با موفقیت به روزرسانی نشد");
+    if (!updateResult.modifiedCount) {
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        data: {
+          message: "منو مورد نظر با موفقیت به روزرسانی نشد",
+        },
+      });
+    }
     return res.status(HttpStatus.OK).json({
       statusCode: HttpStatus.OK,
       data: {
@@ -93,8 +112,14 @@ exports.removeMenu = async (req, res, next) => {
     const { field } = req.params;
     const menu = await findMenuWithIdOrTitle(field);
     const removeResult = await MenuModel.deleteOne({ _id: menu._id });
-    if (!removeResult.deletedCount)
-      throw createHttpError.InternalServerError("منو مورد نظر با موفقیت حذف نشد");
+    if (!removeResult.deletedCount) {
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        data: {
+          message: "منو مورد نظر با موفقیت حذف نشد",
+        },
+      });
+    }
     return res.status(HttpStatus.OK).json({
       statusCode: HttpStatus.OK,
       data: {
@@ -108,13 +133,27 @@ exports.removeMenu = async (req, res, next) => {
 
 const findMenuWithTitle = async (title) => {
   const menu = await MenuModel.findOne({ title });
-  if (menu) throw createHttpError.BadRequest("منو مورد نظر از قبل ایجاد شده است");
+  if (menu) {
+    return res.status(HttpStatus.BAD_REQUEST).json({
+      statusCode: HttpStatus.BAD_REQUEST,
+      data: {
+        message: "منو مورد نظر از قبل ایجاد شده است",
+      },
+    });
+  }
 };
 
 const findMenuWithIdOrTitle = async (field) => {
   const findQuery = mongoose.isValidObjectId(field) ? { _id: field } : { title: field };
 
   const menu = await MenuModel.findOne(findQuery);
-  if (!menu) throw createHttpError.NotFound("منو مورد نظر یافت نشد");
+  if (!menu) {
+    return res.status(HttpStatus.NOT_FOUND).json({
+      statusCode: HttpStatus.NOT_FOUND,
+      data: {
+        message: "منو مورد نظر یافت نشد",
+      },
+    });
+  }
   return menu;
 };
