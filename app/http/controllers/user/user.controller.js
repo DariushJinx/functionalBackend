@@ -1,22 +1,15 @@
-const createHttpError = require("http-errors");
-const {
-  deleteInvalidPropertyInObject,
-} = require("../../../utils/functions.utils");
+const { deleteInvalidPropertyInObject } = require("../../../utils/functions.utils");
 const UserModel = require("../../models/user/user.model");
 const { StatusCodes: HttpStatus } = require("http-status-codes");
-const {
-  changeRole,
-  banUserValidation,
-} = require("../../validation/user/user.validation");
+const { changeRole, banUserValidation } = require("../../validation/user/user.validation");
 const BanModel = require("../../models/ban/ban.model");
 
-
-exports.getAllUsers = async(req, res, next) => {
+exports.getAllUsers = async (req, res, next) => {
   try {
     const { search } = req.query;
     const dataQuery = {};
     if (search) dataQuery["$text"] = { $search: search };
-    const users = await UserModel.find(dataQuery,{"otp.expiresIn" : 0,"password" : 0});
+    const users = await UserModel.find(dataQuery, { "otp.expiresIn": 0, password: 0 });
     return res.status(HttpStatus.OK).json({
       statusCode: HttpStatus.OK,
       data: {
@@ -27,9 +20,9 @@ exports.getAllUsers = async(req, res, next) => {
   } catch (err) {
     next(err);
   }
-}
+};
 
-exports.changeRoles = async(req, res, next) => {
+exports.changeRoles = async (req, res, next) => {
   try {
     const validation = await changeRole.validateAsync(req.body);
     const { id, role } = validation;
@@ -43,17 +36,30 @@ exports.changeRoles = async(req, res, next) => {
   } catch (err) {
     next(err);
   }
-}
+};
 
-exports.banUser = async(req, res, next) => {
+exports.banUser = async (req, res, next) => {
   try {
     const validation = await banUserValidation.validateAsync(req.params);
     const { id } = validation;
     const mainUser = await UserModel.findOne({ _id: id }).lean();
-    if (!mainUser) throw createHttpError.NotFound("کاربر مورد نظر یافت نشد");
+    if (!mainUser) {
+      return res.status(HttpStatus.NOT_FOUND).json({
+        statusCode: HttpStatus.NOT_FOUND,
+        data: {
+          message: "کاربر مورد نظر یافت نشد",
+        },
+      });
+    }
     const banUserResult = await BanModel.create({ mobile: mainUser.mobile });
-    if (!banUserResult)
-      throw createHttpError.InternalServerError("بن شدن کاربر انجام نشد");
+    if (!banUserResult) {
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        data: {
+          message: "بن شدن کاربر انجام نشد",
+        },
+      });
+    }
     return res.status(HttpStatus.OK).json({
       statusCode: HttpStatus.OK,
       data: {
@@ -63,4 +69,4 @@ exports.banUser = async(req, res, next) => {
   } catch (err) {
     next(err);
   }
-}
+};
