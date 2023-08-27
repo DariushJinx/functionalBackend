@@ -1,5 +1,3 @@
-const createHttpError = require("http-errors");
-const Controller = require("../controller");
 const { StatusCodes: HttpStatus } = require("http-status-codes");
 const { deleteInvalidPropertyInObject, findCourseById } = require("../../../utils/functions.utils");
 const CourseModel = require("../../models/course/course.model");
@@ -16,8 +14,14 @@ exports.addChapter = async (req, res, next) => {
         },
       }
     );
-    if (saveChapterResult.modifiedCount == 0)
-      throw createHttpError.InternalServerError("فصل افزوده نشد");
+    if (saveChapterResult.modifiedCount == 0){
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        data: {
+          message: "فصل افزوده نشد",
+        },
+      });
+    }
     return res.status(HttpStatus.CREATED).json({
       statusCode: HttpStatus.CREATED,
       data: {
@@ -57,8 +61,14 @@ exports.removeChapterById = async (req, res, next) => {
         },
       }
     );
-    if (removeChapterResult.modifiedCount == 0)
-      throw new createHttpError.InternalServerError("حذف فصل انجام نشد");
+    if (removeChapterResult.modifiedCount == 0){
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        data: {
+          message: "حذف فصل انجام نشد",
+        },
+      });
+    }
     return res.status(HttpStatus.OK).json({
       statusCode: HttpStatus.OK,
       data: {
@@ -79,8 +89,14 @@ exports.updateChapterById = async (req, res, next) => {
       { "chapters._id": chapterID },
       { $set: { "chapters.$": data } }
     );
-    if (updateChapterResult.modifiedCount == 0)
-      throw new createHttpError.InternalServerError("به روزرسانی فصل انجام نشد");
+    if (updateChapterResult.modifiedCount == 0){
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        data: {
+          message: "به روزرسانی فصل انجام نشد",
+        },
+      });
+    }
     return res.status(HttpStatus.OK).json({
       statusCode: HttpStatus.OK,
       data: {
@@ -93,11 +109,25 @@ exports.updateChapterById = async (req, res, next) => {
 }
 const getChaptersOfCourse = async (id) => {
   const chapters = await CourseModel.findOne({ _id: id }, { chapters: 1, title: 1 });
-  if (!chapters) throw createHttpError.NotFound("دوره ای با این شناسه یافت نشد");
+  if (!chapters){
+    return res.status(HttpStatus.NOT_FOUND).json({
+      statusCode: HttpStatus.NOT_FOUND,
+      data: {
+        message: "دوره ای با این شناسه یافت نشد",
+      },
+    });
+  }
   return chapters;
 }
 const getOneChapter = async (id) => {
   const chapter = await CourseModel.findOne({ "chapters._id": id }, { "chapters.$": 1 });
-  if (!chapter) throw new createHttpError.NotFound("فصلی با این شناسه یافت نشد");
+  if (!chapter){
+    return res.status(HttpStatus.NOT_FOUND).json({
+      statusCode: HttpStatus.NOT_FOUND,
+      data: {
+        message: "فصلی با این شناسه یافت نشد",
+      },
+    });
+  }
   return chapter;
 }
