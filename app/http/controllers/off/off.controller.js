@@ -1,6 +1,10 @@
-const createHttpError = require("http-errors");
 const OffModel = require("../../models/off/off.model");
-const { createOff, getOneOff, setDiscountOnAll, getOneOffOfCourse } = require("../../validation/off/off.validation");
+const {
+  createOff,
+  getOneOff,
+  setDiscountOnAll,
+  getOneOffOfCourse,
+} = require("../../validation/off/off.validation");
 const { StatusCodes: HttpStatus } = require("http-status-codes");
 const { default: mongoose } = require("mongoose");
 const ProductModel = require("../../models/product/product.model");
@@ -19,7 +23,15 @@ exports.createForProduct = async (req, res, next) => {
       uses: 0,
       creator: user._id,
     });
-    if (!newOff) throw createHttpError.InternalServerError("تخفیف مورد نظر ایجاد نشد");
+    if (!newOff) {
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        data: {
+          message: "تخفیف مورد نظر ایجاد نشد",
+        },
+      });
+    }
+
     await ProductModel.findOneAndUpdate({ _id: product }, { discount: newOff.percent });
     return res.status(HttpStatus.CREATED).json({
       statusCode: HttpStatus.CREATED,
@@ -45,7 +57,14 @@ exports.createForCourse = async (req, res, next) => {
       uses: 0,
       creator: user._id,
     });
-    if (!newOff) throw createHttpError.InternalServerError("تخفیف مورد نظر ایجاد نشد");
+    if (!newOff) {
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        data: {
+          message: "تخفیف مورد نظر ایجاد نشد",
+        },
+      });
+    }
     await CourseModel.findOneAndUpdate({ _id: course }, { discount: newOff.percent });
     return res.status(HttpStatus.CREATED).json({
       statusCode: HttpStatus.CREATED,
@@ -93,7 +112,12 @@ exports.getAll = async (req, res, next) => {
       ])
       .lean();
     if (list.length === 0) {
-      throw createHttpError.NotFound("در حال حاظر تخفیفی وجود ندارد");
+      return res.status(HttpStatus.NOT_FOUND).json({
+        statusCode: HttpStatus.NOT_FOUND,
+        data: {
+          message: "در حال حاظر تخفیفی وجود ندارد",
+        },
+      });
     }
 
     return res.status(HttpStatus.OK).json({
@@ -202,7 +226,14 @@ exports.removeOff = async (req, res, next) => {
     if (mongoose.isValidObjectId(id)) {
       deleteOff = await OffModel.findOneAndRemove({ _id: id });
     }
-    if (!deleteOff) throw createHttpError.NotFound("کد مورد نظر یافت نشد");
+    if (!deleteOff) {
+      return res.status(HttpStatus.NOT_FOUND).json({
+        statusCode: HttpStatus.NOT_FOUND,
+        data: {
+          message: "کد مورد نظر یافت نشد",
+        },
+      });
+    }
     return res.status(HttpStatus.OK).json({
       statusCode: HttpStatus.OK,
       data: {
