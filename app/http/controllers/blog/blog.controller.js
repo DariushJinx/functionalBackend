@@ -1,4 +1,3 @@
-const createHttpError = require("http-errors");
 const BlogModel = require("../../models/blog/blog.model");
 const CreateBlogValidation = require("../../validation/blog/blog.validation");
 const { StatusCodes: HttpStatus } = require("http-status-codes");
@@ -26,7 +25,16 @@ exports.createBlog = async (req, res, next) => {
       author,
       images,
     });
-    if (!blog) throw createHttpError.InternalServerError("مقاله مورد نظر با موفقیت ایجاد نشد");
+
+    if(!blog){
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        data: {
+          message: "مقاله مورد نظر با موفقیت ایجاد نشد",
+        },
+      });
+    }
+
     return res.status(HttpStatus.CREATED).json({
       statusCode: HttpStatus.CREATED,
       data: {
@@ -277,7 +285,14 @@ exports.getBlogWithSearch = async (req, res, next) => {
         blogTotalScore += Number(comment.score);
       });
 
-      if (!blogSearch) throw createHttpError.NotFound("مقاله مورد نظر یافت نشد");
+      if(!blogSearch){
+        return res.status(HttpStatus.NOT_FOUND).json({
+          statusCode: HttpStatus.NOT_FOUND,
+          data: {
+            message: "مقاله مورد نظر یافت نشد",
+          },
+        });
+      }
       return res.status(HttpStatus.OK).json({
         statusCode: HttpStatus.OK,
         data: {
@@ -350,7 +365,14 @@ exports.getBlogWithSearch = async (req, res, next) => {
         });
       });
 
-      if (!blogSearches) throw createHttpError.NotFound("مقاله مورد نظر یافت نشد");
+      if(!blogSearches){
+        return res.status(HttpStatus.NOT_FOUND).json({
+          statusCode: HttpStatus.NOT_FOUND,
+          data: {
+            message: "مقاله مورد نظر یافت نشد",
+          },
+        });
+      }
       return res.status(HttpStatus.OK).json({
         statusCode: HttpStatus.OK,
         data: {
@@ -369,8 +391,14 @@ exports.removeBlog = async (req, res, next) => {
     const { id } = req.params;
     const blog = await findBlogWithTitleOrID(id);
     const removeResult = await BlogModel.deleteOne({ _id: blog._id });
-    if (!removeResult.deletedCount)
-      throw createHttpError.InternalServerError("مقاله مورد نظر با موفقیت حذف نشد");
+    if(!removeResult.deletedCount){
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        data: {
+          message: "مقاله مورد نظر با موفقیت حذف نشد",
+        },
+      });
+    }
     return res.status(HttpStatus.OK).json({
       statusCode: HttpStatus.OK,
       data: {
@@ -393,8 +421,14 @@ exports.updateBlog = async (req, res, next) => {
     const data = copyObject(req.body);
     deleteInvalidPropertyInObject(data, blackListFields);
     const updateResult = await BlogModel.updateOne({ _id: blog._id }, { $set: data });
-    if (!updateResult.modifiedCount)
-      throw createHttpError.InternalServerError("مقاله مورد نظر با موفقیت به روزرسانی نشد");
+    if(!updateResult.modifiedCount){
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        data: {
+          message: "مقاله مورد نظر با موفقیت به روزرسانی نشد",
+        },
+      });
+    }
     return res.status(HttpStatus.OK).json({
       statusCode: HttpStatus.OK,
       data: {
@@ -402,6 +436,7 @@ exports.updateBlog = async (req, res, next) => {
       },
     });
   } catch (err) {
+    deleteFileInPublic(req.body.images);
     next(err);
   }
 };
@@ -508,6 +543,13 @@ exports.dislikedBlog = async (req, res, next) => {
 const findBlogWithTitleOrID = async (field) => {
   const findQuery = mongoose.isValidObjectId(field) ? { _id: field } : { title: field };
   const blog = await BlogModel.findOne(findQuery);
-  if (!blog) throw createHttpError.NotFound("مقاله مورد نظر یافت نشد");
+  if(!blog){
+    return res.status(HttpStatus.NOT_FOUND).json({
+      statusCode: HttpStatus.NOT_FOUND,
+      data: {
+        message: "مقاله مورد نظر یافت نشد",
+      },
+    });
+  }
   return blog;
 };
