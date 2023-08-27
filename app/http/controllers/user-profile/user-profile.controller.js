@@ -216,8 +216,14 @@ exports.updateUserProfile = async (req, res, next) => {
     const BlackListFields = ["mobile", "otp", "bills", "discount", "role", "Courses"];
     deleteInvalidPropertyInObject(data, BlackListFields);
     const updateResult = await UserModel.updateOne({ _id: userID }, { $set: data });
-    if (!updateResult.modifiedCount)
-      throw createHttpError.InternalServerError("کاربر مورد نظر با موفقیت به روزرسانی نشد");
+    if (!updateResult.modifiedCount) {
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        data: {
+          message: "کاربر مورد نظر با موفقیت به روزرسانی نشد",
+        },
+      });
+    }
     return res.status(HttpStatus.OK).json({
       statusCode: HttpStatus.OK,
       data: {
