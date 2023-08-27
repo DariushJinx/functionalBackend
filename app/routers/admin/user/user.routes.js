@@ -1,4 +1,6 @@
 const UserController = require("../../../http/controllers/user/user.controller");
+const checkPermission = require("../../../http/middlewares/permission.guard");
+const { PERMISSIONS } = require("../../../utils/constans.utils");
 
 const UserRoutes = require("express").Router();
 
@@ -8,11 +10,11 @@ UserRoutes.patch(
   UserController.changeRoles
 );
 UserRoutes.post(
-  "/ban/:id",
+  "/ban/:id",checkPermission([PERMISSIONS.ADMIN]),
   UserController.banUser
 );
 UserRoutes.get(
-  "/list",
+  "/list",checkPermission([PERMISSIONS.ADMIN]),
   UserController.getAllUsers
 );
 
