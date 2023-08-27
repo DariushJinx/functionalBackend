@@ -1,4 +1,3 @@
-const createHttpError = require("http-errors");
 const BlogModel = require("../../models/blog/blog.model");
 const CommentModel = require("../../models/comments/comment.model");
 const ProductModel = require("../../models/product/product.model");
@@ -6,7 +5,7 @@ const CreateCommentValidation = require("../../validation/comment/comment.valida
 const { StatusCodes: HttpStatus } = require("http-status-codes");
 const CourseModel = require("../../models/course/course.model");
 
-exports.createCommentForBlog = async(req,res,next) => {
+exports.createCommentForBlog = async (req, res, next) => {
   try {
     const validation = await CreateCommentValidation.validateAsync(req.body);
     const { comment, blogName, score } = validation;
@@ -19,8 +18,14 @@ exports.createCommentForBlog = async(req,res,next) => {
       commentUser: user._id,
       score,
     });
-    if (!createCommentForBlog)
-      throw createHttpError.InternalServerError("کامنت برای مقاله مورد نظر ایجاد نشد");
+    if (!createCommentForBlog) {
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        data: {
+          message: "کامنت برای مقاله مورد نظر ایجاد نشد",
+        },
+      });
+    }
     return res.status(HttpStatus.CREATED).json({
       statusCode: HttpStatus.CREATED,
       data: {
@@ -28,13 +33,12 @@ exports.createCommentForBlog = async(req,res,next) => {
         createCommentForBlog,
       },
     });
-
   } catch (err) {
     next(err);
   }
-}
+};
 
-exports.createCommentForCourse = async(req,res,next) => {
+exports.createCommentForCourse = async (req, res, next) => {
   try {
     const validation = await CreateCommentValidation.validateAsync(req.body);
     const { comment, courseName, score } = validation;
@@ -47,8 +51,14 @@ exports.createCommentForCourse = async(req,res,next) => {
       commentUser: user._id,
       score,
     });
-    if (!createCommentForCourse)
-      throw createHttpError.InternalServerError("کامنت برای دوره مورد نظر ایجاد نشد");
+    if (!createCommentForCourse) {
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        data: {
+          message: "کامنت برای دوره مورد نظر ایجاد نشد",
+        },
+      });
+    }
     return res.status(HttpStatus.CREATED).json({
       statusCode: HttpStatus.CREATED,
       data: {
@@ -56,13 +66,12 @@ exports.createCommentForCourse = async(req,res,next) => {
         createCommentForCourse,
       },
     });
-
   } catch (err) {
     next(err);
   }
-}
+};
 
-exports.createCommentForProduct = async(req,res,next) => {
+exports.createCommentForProduct = async (req, res, next) => {
   try {
     const validation = await CreateCommentValidation.validateAsync(req.body);
     const { comment, productName, score } = validation;
@@ -75,8 +84,15 @@ exports.createCommentForProduct = async(req,res,next) => {
       commentUser: user._id,
       score,
     });
-    if (!createCommentForProduct)
-      throw createHttpError.InternalServerError("کامنت برای محصول مورد نظر ایجاد نشد");
+    if (!createCommentForProduct) {
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        data: {
+          message: "کامنت برای محصول مورد نظر ایجاد نشد",
+          createCommentForProduct,
+        },
+      });
+    }
     return res.status(HttpStatus.CREATED).json({
       statusCode: HttpStatus.CREATED,
       data: {
@@ -84,11 +100,10 @@ exports.createCommentForProduct = async(req,res,next) => {
         createCommentForProduct,
       },
     });
-
   } catch (err) {
     next(err);
   }
-}
+};
 
 exports.createAnswer = async (req, res, next) => {
   try {
@@ -107,8 +122,14 @@ exports.createAnswer = async (req, res, next) => {
         },
       }
     );
-    if (!commentResult.modifiedPaths)
-      throw createHttpError.InternalServerError("پاسخ کامنت مورد نظر با موفقیت ثبت نشد");
+    if (!commentResult.modifiedPaths) {
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        data: {
+          message: "پاسخ کامنت مورد نظر با موفقیت ثبت نشد",
+        },
+      });
+    }
     return res.status(HttpStatus.OK).json({
       statusCode: HttpStatus.OK,
       data: {
@@ -173,8 +194,14 @@ exports.showComment = async (req, res, next) => {
   try {
     const { id } = req.params;
     const updateResult = await CommentModel.updateOne({ _id: id }, { show: 1 });
-    if (!updateResult.modifiedCount)
-      throw createHttpError.InternalServerError("حالت مشاهده کامنت فعال نشد");
+    if (!updateResult.modifiedCount) {
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        data: {
+          message: "حالت مشاهده کامنت فعال نشد",
+        },
+      });
+    }
     return res.status(HttpStatus.OK).json({
       statusCode: HttpStatus.OK,
       data: {
@@ -190,8 +217,14 @@ exports.removeComment = async (req, res, next) => {
   try {
     const { id } = req.params;
     const removeResult = await CommentModel.findOneAndDelete({ _id: id });
-    if (!removeResult.modifiedPaths)
-      createHttpError.InternalServerError("کامنت مورد نظر با موفقیت حذف نشد");
+    if (!removeResult.modifiedPaths) {
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        data: {
+          message: "کامنت مورد نظر با موفقیت حذف نشد",
+        },
+      });
+    }
     return res.status(HttpStatus.OK).json({
       statusCode: HttpStatus.OK,
       data: {
