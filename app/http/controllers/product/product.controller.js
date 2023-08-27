@@ -1,4 +1,3 @@
-const createHttpError = require("http-errors");
 const {
   ListOfImagesForRequest,
   deleteFileInPublic,
@@ -32,7 +31,15 @@ exports.addProduct = async (req, res, next) => {
       images,
       supplier,
     });
-    if (!product) throw createHttpError.InternalServerError("محصول مورد نظر با موفقیت ایجاد نشد");
+    if (!product) {
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        data: {
+          message: "محصول مورد نظر با موفقیت ایجاد نشد",
+        },
+      });
+    }
+
     return res.status(HttpStatus.CREATED).json({
       statusCode: HttpStatus.CREATED,
       data: {
@@ -60,8 +67,14 @@ exports.addFeaturesForProduct = async (req, res, next) => {
         },
       }
     );
-    if (!updateResult.modifiedCount)
-      throw createHttpError.InternalServerError("جزئیاتی برای محصول اضافه نشد");
+    if (!updateResult.modifiedCount) {
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        data: {
+          message: "جزئیاتی برای محصول اضافه نشد",
+        },
+      });
+    }
     return res.status(HttpStatus.OK).json({
       statusCode: HttpStatus.OK,
       data: {
@@ -78,11 +91,23 @@ exports.removeFeature = async (req, res, next) => {
     const { productID } = req.params;
     const { title } = req.body;
     const product = await ProductModel.findById(productID);
-    if (!product) throw createHttpError.NotFound("محصول مورد نظر یافت نشد");
+    if (!product) {
+      return res.status(HttpStatus.NOT_FOUND).json({
+        statusCode: HttpStatus.NOT_FOUND,
+        data: {
+          message: "محصول مورد نظر یافت نشد",
+        },
+      });
+    }
     const feature = await findFeatureInFeatures(productID, title);
 
     if (feature?.feature_title !== title) {
-      throw createHttpError.InternalServerError("حذف ویژگی محصول مورد نظر انجام نشد");
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        data: {
+          message: "حذف ویژگی محصول مورد نظر انجام نشد",
+        },
+      });
     } else {
       await ProductModel.updateOne(
         { _id: productID },
@@ -111,8 +136,14 @@ exports.removeProduct = async (req, res, next) => {
     const { field } = req.params;
     const product = await findProductWithIDOrTitle(field);
     const removeResult = await ProductModel.deleteOne({ _id: product._id });
-    if (!removeResult.deletedCount)
-      throw createHttpError.InternalServerError("حذف محصول مورد نظر با موفقیت انجام نشد");
+    if (!removeResult.deletedCount) {
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        data: {
+          message: "حذف محصول مورد نظر با موفقیت انجام نشد",
+        },
+      });
+    }
     return res.status(HttpStatus.OK).json({
       statusCode: HttpStatus.OK,
       data: {
@@ -148,7 +179,14 @@ exports.getOneProduct = async (req, res, next) => {
       productTotalScore += Number(comment.score);
     });
 
-    if (!product) throw createHttpError.NotFound("محصول مورد نظر یافت نشد");
+    if (!product) {
+      return res.status(HttpStatus.NOT_FOUND).json({
+        statusCode: HttpStatus.NOT_FOUND,
+        data: {
+          message: "محصول مورد نظر یافت نشد",
+        },
+      });
+    }
     return res.status(HttpStatus.OK).json({
       statusCode: HttpStatus.OK,
       data: {
@@ -174,8 +212,14 @@ exports.updateProduct = async (req, res, next) => {
     const data = copyObject(req.body);
     deleteInvalidPropertyInObject(data, ProductBlackList);
     const updateResult = await ProductModel.updateOne({ _id: product._id }, { $set: data });
-    if (!updateResult.modifiedCount)
-      throw createHttpError.InternalServerError("محصول مورد نظر با موفقیت به روزرسانی نشد");
+    if (!updateResult.modifiedCount) {
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        data: {
+          message: "محصول مورد نظر با موفقیت به روزرسانی نشد",
+        },
+      });
+    }
     return res.status(HttpStatus.OK).json({
       statusCode: HttpStatus.OK,
       data: {
@@ -183,6 +227,7 @@ exports.updateProduct = async (req, res, next) => {
       },
     });
   } catch (err) {
+    deleteFileInPublic(req.body.images)
     next(err);
   }
 };
@@ -533,14 +578,28 @@ exports.bookmarkedProduct = async (req, res, next) => {
 
 const findProductWitId = async (id) => {
   const product = await ProductModel.findById(id);
-  if (!product) throw createHttpError.NotFound("محصول مورد نظر یافت نشد");
+  if (!product) {
+    return res.status(HttpStatus.NOT_FOUND).json({
+      statusCode: HttpStatus.NOT_FOUND,
+      data: {
+        message: "محصول مورد نظر یافت نشد",
+      },
+    });
+  }
   return product;
 };
 
 const findProductWithIDOrTitle = async (field) => {
   const findQuery = mongoose.isValidObjectId(field) ? { _id: field } : { title: field };
   const product = await ProductModel.findOne(findQuery).lean();
-  if (!product) throw createHttpError.NotFound("محصول مورد نظر یافت نشد");
+  if (!product) {
+    return res.status(HttpStatus.NOT_FOUND).json({
+      statusCode: HttpStatus.NOT_FOUND,
+      data: {
+        message: "محصول مورد نظر یافت نشد",
+      },
+    });
+  }
   return product;
 };
 
