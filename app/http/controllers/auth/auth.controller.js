@@ -1,4 +1,3 @@
-const createHttpError = require("http-errors");
 const {
   RandomNumberGenerator,
   SignAccessToken,
@@ -24,12 +23,22 @@ exports.getOtp = async (req, res, next) => {
     const isUserBan = await BanModel.find({ mobile });
     if (isUserBan.length) {
       return res.status(HttpStatus.FORBIDDEN).json({
-        message: "این شماره تماس مسدود شده است!!!",
+        statusCode: HttpStatus.FORBIDDEN,
+        data: {
+          message: "این شماره تماس مسدود شده است!!!",
+        },
       });
     }
     const code = RandomNumberGenerator();
     const result = await saveUser(code, mobile);
-    if (!result) throw createHttpError.Unauthorized("ورود شما انجام نشد");
+    if (!result) {
+      return res.status(HttpStatus.UNAUTHORIZED).json({
+        statusCode: HttpStatus.UNAUTHORIZED,
+        data: {
+          message: "ورود شما انجام نشد",
+        },
+      });
+    }
     return res.status(HttpStatus.CREATED).json({
       statusCode: HttpStatus.CREATED,
       data: {
@@ -48,10 +57,32 @@ exports.checkOtp = async (req, res, next) => {
     const validation = await CheckOtpValidation.validateAsync(req.body);
     const { mobile, code } = validation;
     const user = await UserModel.findOne({ mobile }, { password: 0, "otp.expiresIn": 0 });
-    if (!user) throw createHttpError.NotFound("کاربر مورد نظر یافت نشد");
-    if (user.otp.code != code) throw createHttpError.Unauthorized("کد وارد شده معتبر نمی باشد");
+    if (!user) {
+      return res.status(HttpStatus.NOT_FOUND).json({
+        statusCode: HttpStatus.NOT_FOUND,
+        data: {
+          message: "کاربر مورد نظر یافت نشد",
+        },
+      });
+    }
+    if (user.otp.code != code) {
+      return res.status(HttpStatus.UNAUTHORIZED).json({
+        statusCode: HttpStatus.UNAUTHORIZED,
+        data: {
+          message: "کد وارد شده معتبر نمی باشد",
+        },
+      });
+    }
     const now = new Date().getTime();
-    if (+user.otp.expiresIn < now) throw createHttpError.Unauthorized("کد وارد شده منقضی شده است");
+
+    if (+user.otp.expiresIn < now) {
+      return res.status(HttpStatus.UNAUTHORIZED).json({
+        statusCode: HttpStatus.UNAUTHORIZED,
+        data: {
+          message: "کد وارد شده منقضی شده است",
+        },
+      });
+    }
     const accessToken = await SignAccessToken(user._id);
     const refreshToken = await SignRefreshToken(user._id);
     res.status(HttpStatus.OK).json({
@@ -83,14 +114,20 @@ exports.register = async (req, res) => {
 
   if (isUserExists) {
     return res.status(HttpStatus.CONFLICT).json({
-      message: "ایمیل و یا یوزرنیم و یا موبایل شما تکراری می باشد",
+      statusCode: HttpStatus.CONFLICT,
+      data: {
+        message: "ایمیل و یا یوزرنیم و یا موبایل شما تکراری می باشد",
+      },
     });
   }
 
   const isUserBan = await BanModel.find({ mobile });
   if (isUserBan.length) {
     return res.status(HttpStatus.FORBIDDEN).json({
-      message: "این شماره تماس مسدود شده است!!!",
+      statusCode: HttpStatus.FORBIDDEN,
+      data: {
+        message: "این شماره تماس مسدود شده است!!!",
+      },
     });
   }
 
@@ -130,13 +167,23 @@ exports.login = async (req, res) => {
   });
 
   if (!user) {
-    return res.status(HttpStatus.UNAUTHORIZED).json("کاربری با این ایمیل و یا یوزرنیم یافت نشد");
+    return res.status(HttpStatus.UNAUTHORIZED).json({
+      statusCode: HttpStatus.UNAUTHORIZED,
+      data: {
+        message: "کاربری با این ایمیل و یا یوزرنیم یافت نشد",
+      },
+    });
   }
 
   const isPasswordValid = bcrypt.compareSync(password, user.password);
 
   if (!isPasswordValid) {
-    return res.status(HttpStatus.UNAUTHORIZED).json({ message: "رمز عبور وارد شده صحیح نمی باشد" });
+    return res.status(HttpStatus.UNAUTHORIZED).json({
+      statusCode: HttpStatus.UNAUTHORIZED,
+      data: {
+        message: "رمز عبور وارد شده صحیح نمی باشد",
+      },
+    });
   }
 
   const accessToken = await SignAccessToken(user._id);
@@ -201,7 +248,12 @@ const saveUser = async (code, mobile) => {
   const countOfRegisteredUser = await UserModel.count();
   if (user) {
     if (+user.otp.expiresIn > now) {
-      throw createHttpError.Forbidden("کد احراز هویت قبلی هنوز منقضی نشده است");
+      return res.status(HttpStatus.FORBIDDEN).json({
+        statusCode: HttpStatus.FORBIDDEN,
+        data: {
+          message: "کد احراز هویت قبلی هنوز منقضی نشده است",
+        },
+      });
     }
     return await updateUser(mobile, { otp });
   }
