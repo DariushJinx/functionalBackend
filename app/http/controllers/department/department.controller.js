@@ -1,20 +1,22 @@
-const createHttpError = require("http-errors");
 const DepartmentModel = require("../../models/department/department.model");
-const {
-  departmentValidation,
-} = require("../../validation/department/department.validation");
+const { departmentValidation } = require("../../validation/department/department.validation");
 const { StatusCodes: HttpStatus } = require("http-status-codes");
 const { default: mongoose } = require("mongoose");
 
-exports.createDepartment = async(req, res, next) => {
+exports.createDepartment = async (req, res, next) => {
   try {
     const validation = await departmentValidation.validateAsync(req.body);
     const { title } = validation;
     const department = await DepartmentModel.create({ title });
-    if (!department)
-      throw createHttpError.InternalServerError(
-        "دپارتمانت مورد نظر ایجاد نشد"
-      );
+    if (!department) {
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        data: {
+          message: "دپارتمانت مورد نظر ایجاد نشد",
+        },
+      });
+    }
+
     return res.status(HttpStatus.CREATED).json({
       statusCode: HttpStatus.CREATED,
       data: {
@@ -25,17 +27,23 @@ exports.createDepartment = async(req, res, next) => {
   } catch (err) {
     next(err);
   }
-}
+};
 
-exports.removeDepartment = async(req, res, next) => {
+exports.removeDepartment = async (req, res, next) => {
   try {
     const { field } = req.params;
     const department = await findDepartment(field);
     const removeResult = await DepartmentModel.deleteOne({
       _id: department._id,
     });
-    if (!removeResult.deletedCount)
-      throw createHttpError.InternalServerError("دپارتمانت مورد نظر حذف نشد");
+    if (!removeResult.deletedCount) {
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        data: {
+          message: "دپارتمانت مورد نظر حذف نشد",
+        },
+      });
+    }
     return res.status(HttpStatus.OK).json({
       statusCode: HttpStatus.OK,
       data: {
@@ -45,9 +53,9 @@ exports.removeDepartment = async(req, res, next) => {
   } catch (err) {
     next(err);
   }
-}
+};
 
-exports.updateDepartment = async(req, res, next) => {
+exports.updateDepartment = async (req, res, next) => {
   try {
     const { field } = req.params;
     const validation = await departmentValidation.validateAsync(req.body);
@@ -61,10 +69,14 @@ exports.updateDepartment = async(req, res, next) => {
         $set: { title },
       }
     );
-    if (!updateResult.modifiedCount)
-      throw createHttpError.InternalServerError(
-        "دپارتمانت مورد نظر به روزرسانی نشد"
-      );
+    if (!updateResult.modifiedCount) {
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        data: {
+          message: "دپارتمانت مورد نظر به روزرسانی نشد",
+        },
+      });
+    }
     return res.status(HttpStatus.OK).json({
       statusCode: HttpStatus.OK,
       data: {
@@ -74,14 +86,19 @@ exports.updateDepartment = async(req, res, next) => {
   } catch (err) {
     next(err);
   }
-}
+};
 
-exports.listOfDepartments = async(req, res, next) => {
+exports.listOfDepartments = async (req, res, next) => {
   try {
-    const list = await DepartmentModel.find({}, { title: 1 })
-      .lean();
-    if (!list)
-      throw createHttpError.NotFound("لیستی از دپارتمانت ها یافت نشد");
+    const list = await DepartmentModel.find({}, { title: 1 }).lean();
+    if (!list){
+      return res.status(HttpStatus.NOT_FOUND).json({
+        statusCode: HttpStatus.NOT_FOUND,
+        data: {
+          message: "لیستی از دپارتمانت ها یافت نشد",
+        },
+      });
+    }
     return res.status(HttpStatus.OK).json({
       statusCode: HttpStatus.OK,
       data: {
@@ -92,14 +109,18 @@ exports.listOfDepartments = async(req, res, next) => {
   } catch (err) {
     next(err);
   }
-}
+};
 
 async function findDepartment(field) {
-  const findQuery = mongoose.isValidObjectId(field)
-    ? { _id: field }
-    : { title: field };
+  const findQuery = mongoose.isValidObjectId(field) ? { _id: field } : { title: field };
   const department = await DepartmentModel.findOne(findQuery);
-  if (!department)
-    throw createHttpError.NotFound("دپارتمانت مورد نظر یافت نشد");
+  if (!department){
+    return res.status(HttpStatus.NOT_FOUND).json({
+      statusCode: HttpStatus.NOT_FOUND,
+      data: {
+        message: "دپارتمانت مورد نظر یافت نشد",
+      },
+    });
+  }
   return department;
 }
