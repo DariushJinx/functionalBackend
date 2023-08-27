@@ -1,4 +1,3 @@
-const createHttpError = require("http-errors");
 const TicketModel = require("../../models/ticket/ticket.model");
 const { createTicket, setAnswer, getAnswer } = require("../../validation/ticket/ticket.validation");
 const { StatusCodes: HttpStatus } = require("http-status-codes");
@@ -41,7 +40,14 @@ exports.createTicket = async (req, res, next) => {
           short_text: 1,
         },
       });
-    if (!ticket) throw createHttpError.InternalServerError("تیکت مورد نظر ایجاد نشد");
+    if (!ticket) {
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        data: {
+          message: "تیکت مورد نظر ایجاد نشد",
+        },
+      });
+    }
     return res.status(HttpStatus.CREATED).json({
       statusCode: HttpStatus.CREATED,
       data: {
@@ -78,7 +84,14 @@ exports.listOfTicket = async (req, res, next) => {
         { path: "departmentSubID", select: { __v: 0 } },
       ])
       .lean();
-    if (!tickets) throw createHttpError.NotFound("تیکتی موجود نیست");
+    if (!tickets) {
+      return res.status(HttpStatus.NOT_FOUND).json({
+        statusCode: HttpStatus.NOT_FOUND,
+        data: {
+          message: "تیکتی موجود نیست",
+        },
+      });
+    }
 
     let ticketArr = [];
 
@@ -116,7 +129,14 @@ exports.userTickets = async (req, res, next) => {
       .populate("user")
       .lean();
 
-    if (!tickets) throw createHttpError.NotFound("تیکتی موجود نیست");
+    if (!tickets) {
+      return res.status(HttpStatus.NOT_FOUND).json({
+        statusCode: HttpStatus.NOT_FOUND,
+        data: {
+          message: "تیکتی موجود نیست",
+        },
+      });
+    }
     let ticketArr = [];
 
     tickets.forEach((ticket) => {
@@ -147,7 +167,14 @@ exports.setAnswer = async (req, res, next) => {
     const validation = await setAnswer.validateAsync(req.body);
     const { body, ticketID } = validation;
     const ticket = await TicketModel.findOne({ _id: ticketID }).lean();
-    if (!ticket) throw createHttpError.NotFound("تیکت موجود نیست");
+    if (!ticket) {
+      return res.status(HttpStatus.NOT_FOUND).json({
+        statusCode: HttpStatus.NOT_FOUND,
+        data: {
+          message: "تیکت موجود نیست",
+        },
+      });
+    }
     const answer = await TicketModel.create({
       title: ticket.title,
       body,
@@ -159,7 +186,7 @@ exports.setAnswer = async (req, res, next) => {
       departmentID: ticket.departmentID,
       departmentSubID: ticket.departmentSubID,
     });
-   
+
     return res.status(HttpStatus.CREATED).json({
       statusCode: HttpStatus.CREATED,
       data: {
@@ -167,7 +194,6 @@ exports.setAnswer = async (req, res, next) => {
         answer,
       },
     });
-    
   } catch (err) {
     next(err);
   }
@@ -179,7 +205,14 @@ exports.getAnswer = async (req, res, next) => {
     const { id } = validation;
     const answerTicket = await TicketModel.findOne({ parent: id });
     const ticket = await TicketModel.findOne({ _id: id });
-    if (!answerTicket || !ticket) throw createHttpError.NotFound("آیدی تیکت مجدد چک شود");
+    if (!answerTicket || !ticket) {
+      return res.status(HttpStatus.NOT_FOUND).json({
+        statusCode: HttpStatus.NOT_FOUND,
+        data: {
+          message: "آیدی تیکت مجدد چک شود",
+        },
+      });
+    }
     return res.status(HttpStatus.OK).json({
       statusCode: HttpStatus.OK,
       data: {
