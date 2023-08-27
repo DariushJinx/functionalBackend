@@ -1,7 +1,5 @@
-const Controller = require("../controller");
 const { StatusCodes: HttpStatus } = require("http-status-codes");
 const { createCourseSchema } = require("../../validation/course/course.schema");
-const createHttpError = require("http-errors");
 const {
   copyObject,
   deleteInvalidPropertyInObject,
@@ -126,8 +124,14 @@ exports.addCourse = async (req, res, next) => {
     const images = ListOfImagesForRequest(req?.files || [], validation.fileUploadPath);
     let { title, short_text, text, tags, category, price, discount = 0, type } = req.body;
     const teacher = req.user._id;
-    if (Number(price) > 0 && type === "free")
-      throw createHttpError.BadRequest("برای دوره ی رایگان نمیتوان قیمت ثبت کرد");
+    if (Number(price) > 0 && type === "free") {
+      return res.status(HttpStatus.BAD_REQUEST).json({
+        statusCode: HttpStatus.BAD_REQUEST,
+        data: {
+          message: "برای دوره ی رایگان نمیتوان قیمت ثبت کرد",
+        },
+      });
+    }
     const course = await CourseModel.create({
       title,
       short_text,
@@ -141,7 +145,14 @@ exports.addCourse = async (req, res, next) => {
       status: "notStarted",
       teacher,
     });
-    if (!course?._id) throw createHttpError.InternalServerError("دوره ثبت نشد");
+    if (!course?._id) {
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        data: {
+          message: "دوره ثبت نشد",
+        },
+      });
+    }
     return res.status(HttpStatus.CREATED).json({
       statusCode: HttpStatus.CREATED,
       data: {
@@ -268,8 +279,14 @@ exports.updateCourseById = async (req, res, next) => {
         $set: data,
       }
     );
-    if (!updateCourseResult.modifiedCount)
-      throw new createHttpError.InternalServerError("به روزرسانی دوره انجام نشد");
+    if (!updateCourseResult.modifiedCount) {
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        data: {
+          message: "به روزرسانی دوره انجام نشد",
+        },
+      });
+    }
 
     return res.status(HttpStatus.OK).json({
       statusCode: HttpStatus.OK,
@@ -286,10 +303,23 @@ exports.removeCourse = async (req, res, next) => {
     const { id } = req.params;
     const findQuery = mongoose.isValidObjectId(id) ? { _id: id } : { title: id };
     const course = await CourseModel.findOne(findQuery);
-    if (!course) throw createHttpError.NotFound("دوره مورد نظر یافت نشد");
+    if (!course) {
+      return res.status(HttpStatus.NOT_FOUND).json({
+        statusCode: HttpStatus.NOT_FOUND,
+        data: {
+          message: "دوره مورد نظر یافت نشد",
+        },
+      });
+    }
     const removeResult = await CourseModel.deleteOne({ _id: course._id });
-    if (!removeResult.deletedCount)
-      throw createHttpError.InternalServerError("دوره مورد نظر حذف نشد");
+    if (!removeResult.deletedCount) {
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        data: {
+          message: "دوره مورد نظر حذف نشد",
+        },
+      });
+    }
     return res.status(HttpStatus.OK).json({
       statusCode: HttpStatus.OK,
       data: {
@@ -435,6 +465,13 @@ exports.dislikedCourse = async (req, res, next) => {
 const findCourseWithTitleOrID = async (field) => {
   const findQuery = mongoose.isValidObjectId(field) ? { _id: field } : { title: field };
   const course = await CourseModel.findOne(findQuery);
-  if (!course) throw createHttpError.NotFound("دوره مورد نظر یافت نشد");
+  if (!course) {
+    return res.status(HttpStatus.NOT_FOUND).json({
+      statusCode: HttpStatus.NOT_FOUND,
+      data: {
+        message: "دوره مورد نظر یافت نشد",
+      },
+    });
+  }
   return course;
 };
