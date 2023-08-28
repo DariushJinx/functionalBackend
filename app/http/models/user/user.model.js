@@ -31,9 +31,10 @@ const schema = new mongoose.Schema(
       },
     },
     birthday: { type: String },
-    role: { type: String, enum: ["USER", "ADMIN"], default: "USER" },
+    role: { type: String, default: "USER" },
     basket: { type: BasketSchema },
     courses: { type: [mongoose.Types.ObjectId], ref: "courses" },
+    token: { type: String, default: "" },
   },
   {
     timestamps: true,
