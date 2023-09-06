@@ -39,8 +39,7 @@
  *                  namespace:
  *                      type: string
  *                      description: namespace of conversation
- */ 
-
+ */
 
 /**
  * @swagger
