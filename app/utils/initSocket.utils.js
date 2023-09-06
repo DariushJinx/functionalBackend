@@ -3,6 +3,7 @@ function initialSocket(httpServer) {
   const io = socketIO(httpServer, {
     cors: {
       origin: "*",
+      methods:["GET","POST"]
     },
     maxHttpBufferSize: 1e8,
   });
