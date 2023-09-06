@@ -3,7 +3,8 @@ const mongoose = require("mongoose");
 const messageSchema = new mongoose.Schema({
   sender: { type: mongoose.Types.ObjectId, ref: "users" },
   message: { type: String },
-  dataTime: { type: Number },
+  dataTime: { type: String },
+  type: { type: String, default: "msg" },
 });
 
 const locationSchema = new mongoose.Schema({
@@ -11,11 +12,7 @@ const locationSchema = new mongoose.Schema({
   location: { type: Object, default: {} },
   dataTime: { type: Number },
 });
-const fileSchema = new mongoose.Schema({
-  sender: { type: mongoose.Types.ObjectId, ref: "users" },
-  file: { type: Object, default: {} },
-  dataTime: { type: Number },
-});
+
 
 const roomSchema = new mongoose.Schema({
   name: { type: String },
@@ -23,7 +20,6 @@ const roomSchema = new mongoose.Schema({
   image: { type: String },
   messages: { type: [messageSchema], default: [] },
   locations: { type: [locationSchema], default: [] },
-  files: { type: [fileSchema], default: [] },
 });
 
 const conversationSchema = new mongoose.Schema({
