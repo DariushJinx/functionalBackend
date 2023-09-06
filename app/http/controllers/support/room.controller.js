@@ -44,12 +44,14 @@ exports.getListOfRooms = async (req, res, next) => {
     next(error);
   }
 };
+
 const findRoomWithName = async (name) => {
   const conversation = await ConversationModel.findOne({
     "rooms.name": name,
   });
   if (conversation) throw createHttpError.BadRequest("این اسم قبلا انتخاب شده است");
 };
+
 const findConversationWithEndpoint = async (endpoint) => {
   const conversation = await ConversationModel.findOne({ endpoint });
   if (!conversation) throw createHttpError.NotFound("فضای مگالمه ای یافت نشد");
