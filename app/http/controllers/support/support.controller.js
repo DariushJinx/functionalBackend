@@ -1,4 +1,5 @@
 const { SignAccessToken } = require("../../../utils/functions.utils");
+
 const UserModel = require("../../models/user/user.model");
 
 exports.renderChatRoom = (req, res, next) => {
