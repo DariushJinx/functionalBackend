@@ -1,8 +1,6 @@
-
 const path = require("path");
 const fs = require("fs");
 const ConversationModel = require("../http/models/conversation/conversation.model");
-
 module.exports = class NamespaceSocketHandler {
   #io;
   constructor(io) {
@@ -53,13 +51,10 @@ module.exports = class NamespaceSocketHandler {
           socket.join(roomName);
           await this.getCountOfOnlineUsers(namespace.endpoint, roomName);
           // بر اساس اسم اتاق فایند رو انجام میدیم و اطلاعات رو به سمت فرانت میفرستیم
-          const roomInfo = conversation.rooms.find(
-            (item) => item.name == roomName
-          );
+          const roomInfo = conversation.rooms.find((item) => item.name == roomName);
           // اطلاعات روم اینفو رو به سمت کلاینت میفرستیم
           socket.emit("roomInfo", roomInfo);
           this.getNewMessage(socket);
-          this.getNewLocation(socket);
           this.uploadFiles(socket);
           socket.on("disconnect", async () => {
             await this.getCountOfOnlineUsers(namespace.endpoint, roomName);
@@ -72,10 +67,7 @@ module.exports = class NamespaceSocketHandler {
   // به وسیله اندپوینت به اتاق وصل میشیم
   async getCountOfOnlineUsers(endpoint, roomName) {
     // به وسیله آف به اندپوینت مورد نظر میریم
-    const onlineUsers = await this.#io
-      .of(`/${endpoint}`)
-      .in(roomName)
-      .allSockets();
+    const onlineUsers = await this.#io.of(`/${endpoint}`).in(roomName).allSockets();
     this.#io
       .of(`/${endpoint}`)
       .in(roomName)
@@ -86,12 +78,13 @@ module.exports = class NamespaceSocketHandler {
   getNewMessage(socket) {
     // اطلاعات مسیج ارسال شده از سمت فرانت رو میگیریم و ازشون استفاده میکنیم
     socket.on("newMessage", async (data) => {
-      const { message, roomName, endpoint, sender } = data;
+      const { message, roomName, endpoint, sender, type } = data;
       await ConversationModel.updateOne(
         { endpoint, "rooms.name": roomName },
         {
           $push: {
             "rooms.$.messages": {
+              type,
               sender,
               message,
               dateTime: Date.now(),
@@ -99,41 +92,36 @@ module.exports = class NamespaceSocketHandler {
           },
         }
       );
+
       // وارد اندپوینت و روم مورد نظر میشیم و دیتا رو به سمت فرانت میفرستیم
       // و برای اینکه پیام ها به صورت ریل تایم باشه از آی او استفاده میکنیم
       this.#io.of(`/${endpoint}`).in(roomName).emit("confirmMessage", data);
     });
   }
+  uploadFiles(socket) {
+    socket.on("upload", async (data, callback) => {
+      const { file, filename, roomName, endpoint,message, sender, type, dateTime } = data;
+      fs.writeFile("public/uploads/sockets/" + String(filename), file, (err) => {
+        callback({ message: err ? "failure" : "success" });
+      });
 
-  getNewLocation(socket) {
-    socket.on("newLocation", async (data) => {
-      const { location, roomName, endpoint, sender } = data;
+      const image = `http://127.0.0.1:2222/uploads/sockets/` + filename;
+
       await ConversationModel.updateOne(
         { endpoint, "rooms.name": roomName },
         {
           $push: {
-            "rooms.$.locations": {
+            "rooms.$.messages": {
+              type,
               sender,
-              location,
-              dateTime: Date.now(),
+              message: image,
+              dateTime,
             },
           },
         }
       );
-      this.#io.of(`/${endpoint}`).in(roomName).emit("confirmLocation", data);
-    });
-  }
 
-  uploadFiles(socket) {
-    socket.on("upload", ({ file, filename }, callback) => {
-      const ext = path.extname(filename);
-      fs.writeFile(
-        "public/uploads/sockets/" + String(Date.now() + ext),
-        file,
-        (err) => {
-          callback({ message: err ? "failure" : "success" });
-        }
-      );
+      this.#io.of(`/${endpoint}`).in(roomName).emit("readFile", data);
     });
   }
 };
