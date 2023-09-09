@@ -72,7 +72,7 @@ function ListOfImagesForRequest(files, fileUploadPath) {
           file.filename
         )
       )
-      .map((item) => item.replace(/\\/g, "/"));
+      .map((item) => item.replace(/\\/g, "//"));
   } else {
     return [];
   }
